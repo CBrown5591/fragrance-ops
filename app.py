@@ -877,9 +877,26 @@ with tab_briefing:
       st.session_state.last_idx = daily_idx
       daily_choice = scenario_filtered_df.iloc[daily_idx]
         
-      def safe_val(val, fallback="N/A"):
-          s = str(val).strip()
-          return fallback if not s or s.lower() == "nan" else s
+      if not scenario_filtered_df.empty:
+        today_num = datetime.date.today().toordinal()
+        badge_seed = sum(ord(c) for c in target_badge)
+        wx_seed = int(wx["temp"] * 3 + wx["humidity"] + wx["rain_chance"] + wx["wind_chill"])
+        total_seed = today_num + wx_seed + badge_seed + st.session_state.reroll_counter
+        random.seed(total_seed)
+        
+        if len(scenario_filtered_df) > 1 and "last_idx" in st.session_state:
+            daily_idx = random.randint(0, len(scenario_filtered_df) - 1)
+            if daily_idx == st.session_state.last_idx:
+                daily_idx = (daily_idx + 1) % len(scenario_filtered_df)
+        else:
+            daily_idx = random.randint(0, len(scenario_filtered_df) - 1)
+            
+        st.session_state.last_idx = daily_idx
+        daily_choice = scenario_filtered_df.iloc[daily_idx]
+        
+        def safe_val(val, fallback="N/A"):
+            s = str(val).strip()
+            return fallback if not s or s.lower() == "nan" else s
 
         profile_name = safe_val(daily_choice.get("Custom Profile Name"), "Custom Executive Profile")
         pairing_type = safe_val(daily_choice.get("Pairing Type"), "Standalone Solo Wear")
