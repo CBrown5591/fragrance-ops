@@ -227,11 +227,12 @@ STANDALONE_MASTER = [
 ]
 
 @st.cache_data(ttl=300, show_spinner="Syncing with Fragrance Matrix in Google Drive...")
+@st.cache_data(ttl=300, show_spinner="Syncing with Fragrance Matrix in Google Drive...")
 def fetch_matrix_from_drive():
     solo_df = pd.DataFrame(STANDALONE_MASTER)
     
     if "gcp_service_account" not in st.secrets:
-        return pd.concat([get_fallback_dataframe(), solo_df], ignore_index=True)
+        return pd.concat([get_fallback_dataframe(), solo_df], ignore_index=True), SARTORIAL_MAP
     
     try:
         creds = Credentials.from_service_account_info(
@@ -242,8 +243,38 @@ def fetch_matrix_from_drive():
         spreadsheet = client.open(sheet_name)
         
         all_dfs = []
+        drive_sartorial = {}
         for ws in spreadsheet.worksheets():
             ws_title_lower = ws.title.strip().lower()
+            
+            # Read 3-option Sartorial Palettes sheet from Google Drive
+            if "sartorial" in ws_title_lower:
+                s_records = ws.get_all_records()
+                for r in s_records:
+                    p_name = str(r.get("Custom Scent Profile Name") or r.get("Custom Profile Name") or "").strip()
+                    base = str(r.get("Base Layer / Entity") or r.get("Base Layer") or "").strip()
+                    top = str(r.get("Top Layer / Partner") or r.get("Top Layer") or "").strip()
+                    
+                    opts = []
+                    for opt_idx in [1, 2, 3]:
+                        o_name = str(r.get(f"Option {opt_idx}: Palette Name") or "").strip()
+                        o_prim = str(r.get(f"Option {opt_idx}: Primary Swatch") or "").strip()
+                        o_acc = str(r.get(f"Option {opt_idx}: Highlight Swatch") or "").strip()
+                        o_sty = str(r.get(f"Option {opt_idx}: Styling Context") or "").strip()
+                        if o_name and o_prim and o_acc:
+                            opts.append({
+                                "opt_num": opt_idx,
+                                "name": o_name,
+                                "primary": o_prim,
+                                "accent": o_acc,
+                                "styling": o_sty
+                            })
+                    if opts:
+                        if p_name:
+                            drive_sartorial[p_name] = opts
+                        if base and top:
+                            drive_sartorial[f"{base} + {top}"] = opts
+                            
             if any(term in ws_title_lower for term in NON_PAIRING_SHEETS):
                 continue
 
@@ -254,6 +285,10 @@ def fetch_matrix_from_drive():
                 w_df = clean_matrix_columns(w_df)
                 all_dfs.append(w_df)
         
+        # Merge drive sartorial with fallback map
+        full_sartorial = SARTORIAL_MAP.copy()
+        full_sartorial.update(drive_sartorial)
+        
         if all_dfs:
             master = pd.concat(all_dfs, ignore_index=True)
             master = master[
@@ -263,12 +298,12 @@ def fetch_matrix_from_drive():
             ]
             master.fillna("", inplace=True)
             combined = pd.concat([master, solo_df], ignore_index=True)
-            return combined
+            return combined, full_sartorial
             
-        return pd.concat([get_fallback_dataframe(), solo_df], ignore_index=True)
+        return pd.concat([get_fallback_dataframe(), solo_df], ignore_index=True), full_sartorial
     except Exception as e:
         st.sidebar.error(f"Google Drive Sync Notice: {e}")
-        return pd.concat([get_fallback_dataframe(), solo_df], ignore_index=True)
+        return pd.concat([get_fallback_dataframe(), solo_df], ignore_index=True), SARTORIAL_MAP
 
 def clean_matrix_columns(df):
     col_map = {
@@ -447,37 +482,18 @@ def evaluate_thermodynamic_band(temp, wind_chill):
 # SARTORIAL COLOR MATCHING REGISTRY
 # ---------------------------------------------------------
 SARTORIAL_MAP = {
-    "The Crisp Blue Alpha": {"name": "Deep Navy & Crisp Gunmetal", "primary": "#0D2A6B", "accent": "#5A6570", "styling": "Crisp blue aromatic lift over modern tailored suiting or clean dark denim."},
-    "The Luminous Modern Executive": {"name": "Slate Charcoal & Soft Lavender", "primary": "#2B303A", "accent": "#9E97A9", "styling": "Modern ambroxan and orange blossom over tailored slate."},
-    "The Sovereign Society Executive": {"name": "Midnight Navy & Cardamom Bronze", "primary": "#1A2238", "accent": "#A3704C", "styling": "Rich narcissus and dark vanilla over deep executive navy with warm leather accents."},
-    "The High-Tech Corporate Mind": {"name": "Slate Olive & Sunlit Amber", "primary": "#3B443B", "accent": "#D9822B", "styling": "Herbal myrtle and cedar balanced by energetic mandarin."},
-    "The Modern Mineral Aristocrat": {"name": "Mineral Slate & Smoked Sage", "primary": "#3C4A57", "accent": "#8A9A86", "styling": "Mineral salt and clary sage over muted herbal earth."},
-    "The Alpine Aristocrat": {"name": "Deep Teak Brown & Alpine Silver", "primary": "#2E1F18", "accent": "#D6DBDF", "styling": "Polished dark timber balancing frosty green tea air."},
-    "The Seductive Modern Barbershop": {"name": "Charcoal Wool & French Lilac", "primary": "#33383B", "accent": "#92849E", "styling": "Clean orange blossom and French lavender over dark suiting."},
-    "The Luminous Imperial Tea": {"name": "Black Tea Amber & Cool Slate", "primary": "#8C4A28", "accent": "#4A5868", "styling": "Chinese black tea and ginger grounded in tailored slate chinos."},
-    "The Modern Floral Executive": {"name": "Slate Charcoal & Soft Lilac", "primary": "#2C3038", "accent": "#A394AA", "styling": "Clean orange blossom and Ambrofix over dark structured slate."},
-    "The Gunmetal Assassin": {"name": "Gunmetal Steel & Bourbon Ochre", "primary": "#3A3E45", "accent": "#B5732A", "styling": "Cold metallic slide and amber bourbon over tactical wool or leather."},
-    "The Deep Abyssal Ocean": {"name": "Deep Nautical Navy & Mineral Sea Grey", "primary": "#122038", "accent": "#8898A6", "styling": "Salty marine accords and green mandarin over abyssal navy."},
-    "The Oceanic Executive": {"name": "Deep Marine Navy & Frosted Steel", "primary": "#0D2A6B", "accent": "#8A9EA7", "styling": "Tailored dark navy overshirt with frosted steel trousers; built for waterfront breezes."},
-    "The Radiant Executive Timber": {"name": "Deep Teak Brown & Washed Mineral Blue", "primary": "#2E1F18", "accent": "#4F6B85", "styling": "Tailored selvedge denim or dark timber trousers with washed mineral blue layer."},
-    "The Golden Gourmand Sovereign": {"name": "Dark Espresso & Warm Honey Tan", "primary": "#281D17", "accent": "#C48D47", "styling": "Sweet almond and benzoin resting on dark roasted espresso."},
-    "The Intimate Tobacco Seduction": {"name": "Espresso & Spiced Cognac", "primary": "#2A1D15", "accent": "#9E5A2A", "styling": "Cozy tobacco and ginger over rich brown knitwear for close dining."},
-    "The Authentic Caribbean King": {"name": "Palm Green & Coconut Shell Tan", "primary": "#324A38", "accent": "#9C7A58", "styling": "Lime zest, sugar cane, and white rum in island earth tones."},
-    "The Caribbean Mountain Stream": {"name": "Island Palm & Frosted White", "primary": "#234D34", "accent": "#FFFFFF", "styling": "Resort linen shirt with white or natural stone trousers."},
-    "The Desert Oud Monarch": {"name": "Midnight Black & Desert Crimson", "primary": "#1A1A1A", "accent": "#801B2B", "styling": "Smoky oud and sweet raspberry over sleek nocturnal darks."},
-    "The Sovereign Agarwood Suite": {"name": "Smoked Charcoal & Rosewood Bronze", "primary": "#2B2D33", "accent": "#8C4F47", "styling": "Agarwood, rosewood, and cardamom in a sovereign corporate or gala cut."},
-    "The Tactical Ambroxan Alpha": {"name": "Tactical Gunmetal & Electric Bergamot Blue", "primary": "#2A2C2E", "accent": "#3A6B88", "styling": "Fiery Sichuan pepper and ambroxan over dark technical gear."},
-    "The Mediterranean Blue Powerhouse": {"name": "Midnight Blue & Smoked Incense Grey", "primary": "#121F38", "accent": "#525B66", "styling": "Aquatic citrus, violet leaf, and incense in sharp contrast."},
-    "The Boozy Oak Aristocrat": {"name": "Rich Cognac & Dark Oak Charcoal", "primary": "#8C4820", "accent": "#2A2E33", "styling": "Crisp apple and single malt whiskey over structured dark wool or stadium jacket."},
-    "The Premium Lounge": {"name": "Gunmetal Steel & Bourbon Ochre", "primary": "#3A3E45", "accent": "#B5732A", "styling": "Amber bourbon and dark cedarwood over heavy wool or leather jacket."},
-    "The Modern Herbal Executive": {"name": "Executive Navy & Cardamom Bronze", "primary": "#1A2238", "accent": "#A3704C", "styling": "Suited navy trouser with bronze/gunmetal hardware."},
-    "The High-Style Executive": {"name": "Charcoal Wool & French Lilac", "primary": "#2B3038", "accent": "#9E92A8", "styling": "Charcoal relaxed trousers with soft heather lilac knit."},
-    "The Tailored Contemporary Alpha": {"name": "Charcoal Slate & Ice Blue", "primary": "#3E444C", "accent": "#A5C9EB", "styling": "Slate tailored trousers with crisp ice-blue dress shirt."},
-    "The Power Blue Executive": {"name": "Deep French Blue & Crisp White", "primary": "#0D2A6B", "accent": "#FFFFFF", "styling": "Dark structured blazer and crisp collared poplin."},
-    "The Sicilian Citrus Tea": {"name": "Earthy Olive & Sunlit Ochre", "primary": "#4A5240", "accent": "#D4A373", "styling": "Smart casual linen/knit with warm ochre wrist watch strap."},
-    "The Alpine Tea Stream": {"name": "Black Tea Amber & Cool Slate", "primary": "#8C4A28", "accent": "#4A5868", "styling": "Grounded warm-amber tones over tailored slate chinos."}
+    "The Modern Herbal Executive": [
+        {"opt_num": 1, "name": "Executive Navy & Brushed Gold", "primary": "#1F497D", "accent": "#D4AF37", "styling": "Suited navy trouser with brushed gold/brass hardware mirroring French sage and Society vanilla."},
+        {"opt_num": 2, "name": "Forest Hunter Green & Brushed Brass", "primary": "#1C3325", "accent": "#C5A059", "styling": "Hunter green mirrors French clary sage and Haitian vetiver; brass hardware matches smooth cedar."},
+        {"opt_num": 3, "name": "Washed Charcoal & Warm Sandstone", "primary": "#2E3033", "accent": "#C2B69D", "styling": "Translates creamy vanilla and dark Haitian vetiver into understated neutral warmth."}
+    ],
+    "The Crisp Blue Alpha": [
+        {"opt_num": 1, "name": "Deep Navy & Crisp Gunmetal", "primary": "#0D2A6B", "accent": "#5A6570", "styling": "Crisp blue aromatic lift over modern tailored suiting or clean dark denim."},
+        {"opt_num": 2, "name": "Spruce Slate & Frost White", "primary": "#2C3E35", "accent": "#F4F6F8", "styling": "Crisp apple and herbal sage over dark spruce chino and optic white."},
+        {"opt_num": 3, "name": "Charcoal & Warm Amber Leather", "primary": "#2B303A", "accent": "#C87D28", "styling": "Grounds bright ginger and amberwood into tailored executive amber."}
+    ],
+    # ... remaining profiles ...
 }
-
 DEFAULT_PALETTE = {"name": "Classic Executive Slate & White", "primary": "#2F3E46", "accent": "#F8F9FA", "styling": "Clean tailored neutral wardrobe with subtle brushed steel accent."}
 
 # ---------------------------------------------------------
@@ -576,8 +592,8 @@ with st.sidebar:
         st.cache_data.clear()
         st.success("Cache refreshed from Google Drive!")
 
-# Load Master Matrix
-matrix_df = fetch_matrix_from_drive()
+# Load Master Matrix & Live 3-Option Sartorial Registry
+matrix_df, sartorial_registry = fetch_matrix_from_drive()
 
 # ---------------------------------------------------------
 # MAIN APP TABS
@@ -743,7 +759,24 @@ with tab_briefing:
         else:
             wash_recommendation = "Freshwater Body Wash (Clean Slate Universal Canvas)"
             
-        sartorial = SARTORIAL_MAP.get(profile_name, DEFAULT_PALETTE)
+        # ✅ New - Resolves all 3 palette options and tracks which one is currently selected
+        palettes = sartorial_registry.get(profile_name) or sartorial_registry.get(
+            f"{base_layer} + {top_layer}"
+        )
+        if not palettes:
+          palettes = [DEFAULT_PALETTE]
+        elif isinstance(palettes, dict):
+          palettes = [palettes]
+
+        # Track palette index in session state for the shuffle button
+        if "palette_idx" not in st.session_state:
+          st.session_state.palette_idx = 0
+
+        current_opt_idx = st.session_state.palette_idx % len(palettes)
+        sartorial = palettes[current_opt_idx]
+        opt_num_display = sartorial.get("opt_num", current_opt_idx + 1)
+        total_opts = len(palettes)
+
         badge_style = "badge-solo" if is_solo else "badge-tag"
         
         # Primary Recipe Card (Full Mobile Width)
@@ -798,16 +831,30 @@ with tab_briefing:
 
         # Sartorial Harmony Card
         st.markdown(f"""
-        <div class="sartorial-card">
-            <h4 style="color: #58A6FF; margin: 0 0 8px 0; font-size: 16px;">🎨 Sartorial Color Harmony</h4>
-            <div style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">{sartorial['name']}</div>
-            <div style="display: flex; gap: 16px; margin-bottom: 8px;">
-                <div><span class="swatch-box" style="background-color: {sartorial['primary']};"></span> Primary: <code>{sartorial['primary']}</code></div>
-                <div><span class="swatch-box" style="background-color: {sartorial['accent']};"></span> Accent: <code>{sartorial['accent']}</code></div>
-            </div>
-            <div style="font-size: 13px; color: #8B949E;">{sartorial['styling']}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # ✅ Lines 799–810 (New - Option Counter Badge + Dedicated Colorway Shuffle Button)
+# Sartorial Harmony Card with Option Counter & Dedicated Shuffle Button
+st.markdown(
+    f"""
+<div class="sartorial-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h4 style="color: #58A6FF; margin: 0; font-size: 16px;">🎨 Sartorial Color Harmony</h4>
+        <span class="badge-tag">OPTION {opt_num_display} OF {total_opts}</span>
+    </div>
+    <div style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">{sartorial['name']}</div>
+    <div style="display: flex; gap: 16px; margin-bottom: 8px;">
+        <div><span class="swatch-box" style="background-color: {sartorial['primary']};"></span> Primary: <code>{sartorial['primary']}</code></div>
+        <div><span class="swatch-box" style="background-color: {sartorial['accent']};"></span> Accent: <code>{sartorial['accent']}</code></div>
+    </div>
+    <div style="font-size: 13px; color: #8B949E; margin-bottom: 6px;">{sartorial['styling']}</div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+# Dedicated Palette Reroll Button (Only rotates colorway, keeps fragrance locked)
+if st.button("🎨 Shuffle Colorway (Option 1 / 2 / 3)", use_container_width=True):
+  st.session_state.palette_idx += 1
+  st.rerun()
 
     else:
         st.warning("No pairing recipes found in the active matrix sheets for this scenario. Please verify your Google Sheet tabs.")
