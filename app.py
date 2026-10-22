@@ -321,9 +321,7 @@ with tab_explorer:
         if st.button("🎲 Surprise Me (Random Pair from Filter)"):
             if not filtered_df.empty:
                 pick = filtered_df.sample(1).iloc[0]
-                st.info(f"**Random Pick:** **{pick.get('Custom Profile Name')}** ({pick.get('Base Layer')} + {pick.get('Top Layer')})
-
-*{pick.get('Scent Profile & Notes Breakdown')}*")
+                st.info(f"**Random Pick:** **{pick.get('Custom Profile Name')}** ({pick.get('Base Layer')} + {pick.get('Top Layer')})*{pick.get('Scent Profile & Notes Breakdown')}*")
             else:
                 st.warning("No entries match the current filter.")
                 
