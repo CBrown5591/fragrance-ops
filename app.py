@@ -877,9 +877,9 @@ with tab_briefing:
       st.session_state.last_idx = daily_idx
       daily_choice = scenario_filtered_df.iloc[daily_idx]
         
-        def safe_val(val, fallback="N/A"):
-            s = str(val).strip()
-            return fallback if not s or s.lower() == "nan" else s
+      def safe_val(val, fallback="N/A"):
+          s = str(val).strip()
+          return fallback if not s or s.lower() == "nan" else s
 
         profile_name = safe_val(daily_choice.get("Custom Profile Name"), "Custom Executive Profile")
         pairing_type = safe_val(daily_choice.get("Pairing Type"), "Standalone Solo Wear")
