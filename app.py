@@ -227,7 +227,6 @@ STANDALONE_MASTER = [
 ]
 
 @st.cache_data(ttl=300, show_spinner="Syncing with Fragrance Matrix in Google Drive...")
-@st.cache_data(ttl=300, show_spinner="Syncing with Fragrance Matrix in Google Drive...")
 def fetch_matrix_from_drive():
     solo_df = pd.DataFrame(STANDALONE_MASTER)
     
@@ -285,7 +284,6 @@ def fetch_matrix_from_drive():
                 w_df = clean_matrix_columns(w_df)
                 all_dfs.append(w_df)
         
-        # Merge drive sartorial with fallback map
         full_sartorial = SARTORIAL_MAP.copy()
         full_sartorial.update(drive_sartorial)
         
@@ -492,7 +490,146 @@ SARTORIAL_MAP = {
         {"opt_num": 2, "name": "Spruce Slate & Frost White", "primary": "#2C3E35", "accent": "#F4F6F8", "styling": "Crisp apple and herbal sage over dark spruce chino and optic white."},
         {"opt_num": 3, "name": "Charcoal & Warm Amber Leather", "primary": "#2B303A", "accent": "#C87D28", "styling": "Grounds bright ginger and amberwood into tailored executive amber."}
     ],
-    # ... remaining profiles ...
+    "The Luminous Modern Executive": [
+        {"opt_num": 1, "name": "Slate Charcoal & Soft Lavender", "primary": "#2B303A", "accent": "#9E97A9", "styling": "Modern ambroxan and orange blossom over tailored slate."},
+        {"opt_num": 2, "name": "Washed Mineral & Desert Sand", "primary": "#4F6B85", "accent": "#C2B29D", "styling": "Sun-warmed pear and ginger balanced over neutral chinos."},
+        {"opt_num": 3, "name": "Deep Navy & Sterling Grey", "primary": "#162238", "accent": "#9AA3AB", "styling": "Cool crystalline sillage with modern executive metallic hardware."}
+    ],
+    "The Sovereign Society Executive": [
+        {"opt_num": 1, "name": "Midnight Navy & Cardamom Bronze", "primary": "#1A2238", "accent": "#A3704C", "styling": "Rich narcissus and dark vanilla over deep executive navy with warm leather accents."},
+        {"opt_num": 2, "name": "Charcoal & Muted Moss", "primary": "#2F353B", "accent": "#606C5A", "styling": "Earthy cedar and organic vetiver in a tailored corporate silhouette."},
+        {"opt_num": 3, "name": "Espresso & Brushed Gold", "primary": "#2B2118", "accent": "#C5A059", "styling": "Opulent evening wood and smooth amber warmth."}
+    ],
+    "The High-Tech Corporate Mind": [
+        {"opt_num": 1, "name": "Slate Olive & Sunlit Amber", "primary": "#3B443B", "accent": "#D9822B", "styling": "Herbal myrtle and cedar balanced by energetic mandarin."},
+        {"opt_num": 2, "name": "Charcoal & Ice Blue", "primary": "#36454F", "accent": "#A5C5D9", "styling": "Clean crystalline cedar and high-tech corporate cool."},
+        {"opt_num": 3, "name": "Dark Chocolate & Clean Sand", "primary": "#342822", "accent": "#D1C2A5", "styling": "Warm modern wood base with lightweight neutral contrast."}
+    ],
+    "The Modern Mineral Aristocrat": [
+        {"opt_num": 1, "name": "Mineral Slate & Smoked Sage", "primary": "#3C4A57", "accent": "#8A9A86", "styling": "Mineral salt and clary sage over muted herbal earth."},
+        {"opt_num": 2, "name": "Slate Charcoal & Mineral Ice Blue", "primary": "#2B303A", "accent": "#7C99B3", "styling": "Airy ozone and violet leaf grounded in tailored charcoal."},
+        {"opt_num": 3, "name": "Dark Plum & Frosted Platinum", "primary": "#422835", "accent": "#D8DEE4", "styling": "Smoky vetiver depth paired with modern mineral contrast."}
+    ],
+    "The Alpine Aristocrat": [
+        {"opt_num": 1, "name": "Deep Teak Brown & Alpine Silver", "primary": "#2E1F18", "accent": "#D6DBDF", "styling": "Polished dark timber balancing frosty green tea air."},
+        {"opt_num": 2, "name": "Dark Forest & Clean Cream", "primary": "#1E2B22", "accent": "#ECE6D8", "styling": "Herbal blackcurrant and tea over earthy forest wool."},
+        {"opt_num": 3, "name": "Navy Indigo & Icy Steel", "primary": "#1B263B", "accent": "#8D99AE", "styling": "Crisp mountain ozone over structured executive blue."}
+    ],
+    "The Seductive Modern Barbershop": [
+        {"opt_num": 1, "name": "Charcoal Wool & French Lilac", "primary": "#33383B", "accent": "#92849E", "styling": "Clean orange blossom and French lavender over dark suiting."},
+        {"opt_num": 2, "name": "Dark Olive & Warm Chestnut", "primary": "#3F4436", "accent": "#8A4B2D", "styling": "Barbershop patchouli and cedar anchored by rich leather."},
+        {"opt_num": 3, "name": "Deep Navy & Clean Silver", "primary": "#141E30", "accent": "#C0C5C9", "styling": "Italian lemon and cedarwood with crisp metallic accents."}
+    ],
+    "The Luminous Imperial Tea": [
+        {"opt_num": 1, "name": "Burnt Terracotta & Dark Olive", "primary": "#B85D3B", "accent": "#363C2E", "styling": "Saturated warmth echoing Chinese black tea, ginger, and ambroxan."},
+        {"opt_num": 2, "name": "Black Tea Amber & Cool Slate", "primary": "#8C4A28", "accent": "#4A5868", "styling": "Chinese black tea and ginger grounded in tailored slate chinos."},
+        {"opt_num": 3, "name": "Earthy Olive & Sunlit Bergamot", "primary": "#3E4738", "accent": "#D99B26", "styling": "Crisp citrus sparkle anchored by grounding green wool."}
+    ],
+    "The Modern Floral Executive": [
+        {"opt_num": 1, "name": "Slate Charcoal & Soft Lilac", "primary": "#2C3038", "accent": "#A394AA", "styling": "Clean orange blossom and Ambrofix over dark structured slate."},
+        {"opt_num": 2, "name": "Deep Navy & Frosted Sage", "primary": "#172235", "accent": "#8B9B88", "styling": "Crisp ginger and white florals framed by deep executive blue."},
+        {"opt_num": 3, "name": "Desert Sand & Washed Indigo", "primary": "#C4B49F", "accent": "#384E69", "styling": "Sun-wrenched modern freshness with tailored denim."}
+    ],
+    "The Gunmetal Assassin": [
+        {"opt_num": 1, "name": "Gunmetal Steel & Bourbon Ochre", "primary": "#3A3E45", "accent": "#B5732A", "styling": "Cold metallic slide and amber bourbon over tactical wool or leather."},
+        {"opt_num": 2, "name": "Tactical Black & Smoked Lemon", "primary": "#171717", "accent": "#A89F44", "styling": "Zesty lemon and clary sage cutting through midnight black."},
+        {"opt_num": 3, "name": "Deep Charcoal & Raw Leather Tan", "primary": "#282A2E", "accent": "#8F5B34", "styling": "Rugged cedar and amber bourbon balanced by tailored suiting."}
+    ],
+    "The Deep Abyssal Ocean": [
+        {"opt_num": 1, "name": "Deep Nautical Navy & Mineral Sea Grey", "primary": "#122038", "accent": "#8898A6", "styling": "Salty marine accords and green mandarin over abyssal navy."},
+        {"opt_num": 2, "name": "Washed Denim & Clean Silver", "primary": "#384860", "accent": "#BFC7CE", "styling": "Heavy marine sillage paired with relaxed weekend denim."},
+        {"opt_num": 3, "name": "Dark Slate Olive & Ocean Aqua", "primary": "#303B32", "accent": "#328294", "styling": "Coastal rosemary and cypress rooted in rich green earth."}
+    ],
+    "The Oceanic Executive": [
+        {"opt_num": 1, "name": "Deep Marine Navy & Frosted Steel", "primary": "#0D2A6B", "accent": "#8A9EA7", "styling": "Tailored dark navy overshirt with frosted steel trousers; built for waterfront breezes."},
+        {"opt_num": 2, "name": "Washed Denim & Clean Silver", "primary": "#384860", "accent": "#BFC7CE", "styling": "Heavy marine sillage paired with relaxed weekend denim."},
+        {"opt_num": 3, "name": "Dark Slate Olive & Ocean Aqua", "primary": "#303B32", "accent": "#328294", "styling": "Coastal rosemary and cypress rooted in rich green earth."}
+    ],
+    "The Radiant Executive Timber": [
+        {"opt_num": 1, "name": "Deep Teak Brown & Washed Mineral Blue", "primary": "#2E1F18", "accent": "#4F6B85", "styling": "Tailored selvedge denim or dark timber trousers with washed mineral blue layer."},
+        {"opt_num": 2, "name": "Charcoal Wool & Soft Lilac", "primary": "#2C3038", "accent": "#A394AA", "styling": "Frosted lavender and orange blossom framed by dark charcoal."},
+        {"opt_num": 3, "name": "Midnight Navy & Warm Caramel", "primary": "#162032", "accent": "#C2884E", "styling": "Juicy pear and radiating Akigalawood over dark naval suiting."}
+    ],
+    "The Golden Gourmand Sovereign": [
+        {"opt_num": 1, "name": "Dark Espresso & Warm Honey Tan", "primary": "#281D17", "accent": "#C48D47", "styling": "Sweet almond and benzoin resting on dark roasted espresso."},
+        {"opt_num": 2, "name": "Midnight Navy & Amber Ochre", "primary": "#182234", "accent": "#D18C38", "styling": "Rich tonka and vanilla contrast against deep suiting blue."},
+        {"opt_num": 3, "name": "Charcoal Wool & Burnt Caramel", "primary": "#2F333A", "accent": "#A85926", "styling": "Warm winter gourmand woods with executive tailoring."}
+    ],
+    "The Intimate Tobacco Seduction": [
+        {"opt_num": 1, "name": "Espresso & Spiced Cognac", "primary": "#2A1D15", "accent": "#9E5A2A", "styling": "Cozy tobacco and ginger over rich brown knitwear for close dining."},
+        {"opt_num": 2, "name": "Charcoal & Warm Terracotta", "primary": "#2D3136", "accent": "#B85D3B", "styling": "Warm cardamom and amber balanced by tailored charcoal."},
+        {"opt_num": 3, "name": "Deep Forest & Caramel Suede", "primary": "#233027", "accent": "#C2884E", "styling": "Earthy autumn woods and golden resinous tobacco."}
+    ],
+    "The Authentic Caribbean King": [
+        {"opt_num": 1, "name": "Palm Green & Coconut Shell Tan", "primary": "#324A38", "accent": "#9C7A58", "styling": "Lime zest, sugar cane, and white rum in island earth tones."},
+        {"opt_num": 2, "name": "Nautical Navy & Bleached White", "primary": "#1A2840", "accent": "#F5F5F7", "styling": "Resort-ready tropical air over structured dark naval blue."},
+        {"opt_num": 3, "name": "Sunlit Sandstone & Ocean Aqua", "primary": "#B8A284", "accent": "#3D8B99", "styling": "Crisp white rum and coconut water in warm-weather neutrals."}
+    ],
+    "The Caribbean Mountain Stream": [
+        {"opt_num": 1, "name": "Island Palm & Frosted White", "primary": "#234D34", "accent": "#FFFFFF", "styling": "Resort linen shirt with white or natural stone trousers."},
+        {"opt_num": 2, "name": "Bleached Sand & Slate Teal", "primary": "#D8CCA3", "accent": "#3D6B73", "styling": "Tropical ozone and citrus balanced over cool coastal teal."},
+        {"opt_num": 3, "name": "Nautical Navy & Raw Sugarcane", "primary": "#18253C", "accent": "#DDD1BA", "styling": "Lime and coconut layered over dark structured naval blue."}
+    ],
+    "The Desert Oud Monarch": [
+        {"opt_num": 1, "name": "Midnight Black & Desert Crimson", "primary": "#1A1A1A", "accent": "#801B2B", "styling": "Smoky oud and sweet raspberry over sleek nocturnal darks."},
+        {"opt_num": 2, "name": "Dark Chocolate & Burnt Amber", "primary": "#2E1E16", "accent": "#B05A28", "styling": "Dense leatherwood, incense, and warm resinous tones."},
+        {"opt_num": 3, "name": "Deep Slate & Smoked Plum", "primary": "#30343F", "accent": "#542E43", "styling": "Incense smoke and dark rosewood with mysterious contrast."}
+    ],
+    "The Sovereign Agarwood Suite": [
+        {"opt_num": 1, "name": "Smoked Charcoal & Rosewood Bronze", "primary": "#2B2D33", "accent": "#8C4F47", "styling": "Agarwood, rosewood, and cardamom in a sovereign corporate or gala cut."},
+        {"opt_num": 2, "name": "Deep Espresso & Sage Leaf", "primary": "#261D17", "accent": "#7E8D7B", "styling": "Rich dark timber softened by aromatic herbal tones."},
+        {"opt_num": 3, "name": "Midnight Navy & Antique Silver", "primary": "#151C28", "accent": "#A8B0B8", "styling": "High-authority evening woods with cool executive hardware."}
+    ],
+    "The Tactical Ambroxan Alpha": [
+        {"opt_num": 1, "name": "Tactical Gunmetal & Electric Bergamot Blue", "primary": "#2A2C2E", "accent": "#3A6B88", "styling": "Fiery Sichuan pepper and ambroxan over dark technical gear."},
+        {"opt_num": 2, "name": "Deep Indigo & Warm Bronze", "primary": "#192338", "accent": "#A66D3B", "styling": "Raw Calabrian bergamot and cedar with warm leather hits."},
+        {"opt_num": 3, "name": "Washed Black & Cool Concrete", "primary": "#212121", "accent": "#8C9298", "styling": "Clean, aggressive projection anchored by monochrome neutrals."}
+    ],
+    "The Mediterranean Blue Powerhouse": [
+        {"opt_num": 1, "name": "Midnight Blue & Smoked Incense Grey", "primary": "#121F38", "accent": "#525B66", "styling": "Aquatic citrus, violet leaf, and incense in sharp contrast."},
+        {"opt_num": 2, "name": "Charcoal & Crisp Ocean Mist", "primary": "#2D3238", "accent": "#7D9CA8", "styling": "Clean ambroxan projection over executive office charcoal."},
+        {"opt_num": 3, "name": "Deep Plum & Weathered Khaki", "primary": "#3F2633", "accent": "#B0A287", "styling": "Black pepper and papyrus anchored by earthy relaxed chinos."}
+    ],
+    "The Boozy Oak Aristocrat": [
+        {"opt_num": 1, "name": "Rich Cognac & Dark Oak Charcoal", "primary": "#8C4820", "accent": "#2A2E33", "styling": "Crisp apple and single malt whiskey over structured dark wool or stadium jacket."},
+        {"opt_num": 2, "name": "Bourbon Ochre & Gunmetal Steel", "primary": "#B5732A", "accent": "#3A3E45", "styling": "Amber bourbon and dark cedarwood over heavy wool or leather jacket."},
+        {"opt_num": 3, "name": "Espresso & Spiced Cognac", "primary": "#2A1D15", "accent": "#9E5A2A", "styling": "Cozy apple, tobacco, and ginger over rich brown knitwear."}
+    ],
+    "The Premium Lounge": [
+        {"opt_num": 1, "name": "Gunmetal Steel & Bourbon Ochre", "primary": "#3A3E45", "accent": "#B5732A", "styling": "Amber bourbon and dark cedarwood over heavy wool or leather jacket."},
+        {"opt_num": 2, "name": "Rich Cognac & Dark Oak Charcoal", "primary": "#8C4820", "accent": "#2A2E33", "styling": "Crisp apple and single malt whiskey over structured dark wool."},
+        {"opt_num": 3, "name": "Tactical Black & Smoked Amber", "primary": "#171717", "accent": "#C87D28", "styling": "Deep boozy resonance cutting through sleek nocturnal black."}
+    ],
+    "The High-Style Executive": [
+        {"opt_num": 1, "name": "Charcoal Wool & French Lilac", "primary": "#2B3038", "accent": "#9E92A8", "styling": "Charcoal relaxed trousers with soft heather lilac knit mirroring French lavender."},
+        {"opt_num": 2, "name": "Dark Olive & Warm Chestnut", "primary": "#3F4436", "accent": "#8A4B2D", "styling": "Barbershop patchouli and cedar anchored by rich chestnut leather."},
+        {"opt_num": 3, "name": "Deep Navy & Clean Silver", "primary": "#141E30", "accent": "#C0C5C9", "styling": "Italian lemon and cedarwood with crisp metallic accents."}
+    ],
+    "The Tailored Contemporary Alpha": [
+        {"opt_num": 1, "name": "Charcoal Slate & Ice Blue", "primary": "#3E444C", "accent": "#A5C9EB", "styling": "Slate tailored trousers with crisp ice-blue dress shirt."},
+        {"opt_num": 2, "name": "Deep Navy & Frosted Sage", "primary": "#172235", "accent": "#8B9B88", "styling": "Crisp ginger and white florals framed by deep executive blue."},
+        {"opt_num": 3, "name": "Desert Sand & Washed Indigo", "primary": "#C4B49F", "accent": "#384E69", "styling": "Sun-wrenched modern freshness with tailored denim."}
+    ],
+    "The Power Blue Executive": [
+        {"opt_num": 1, "name": "Deep French Blue & Crisp White", "primary": "#0D2A6B", "accent": "#FFFFFF", "styling": "Dark structured blazer and crisp collared poplin."},
+        {"opt_num": 2, "name": "Spruce Slate & Frost White", "primary": "#2C3E35", "accent": "#F4F6F8", "styling": "Crisp apple and herbal sage over dark spruce chino and optic white."},
+        {"opt_num": 3, "name": "Charcoal & Warm Amber Leather", "primary": "#2B303A", "accent": "#C87D28", "styling": "Grounds bright ginger and amberwood into tailored executive amber."}
+    ],
+    "The Sicilian Citrus Tea": [
+        {"opt_num": 1, "name": "Earthy Olive & Sunlit Ochre", "primary": "#4A5240", "accent": "#D4A373", "styling": "Smart casual linen/knit with warm ochre wrist watch strap."},
+        {"opt_num": 2, "name": "Black Tea Amber & Cool Slate", "primary": "#8C4A28", "accent": "#4A5868", "styling": "Chinese black tea and ginger grounded in tailored slate chinos."},
+        {"opt_num": 3, "name": "Deep Indigo & Frosted White", "primary": "#1B283E", "accent": "#F2F5F8", "styling": "Radiant ambroxan and sparkling tea with pristine lift."}
+    ],
+    "The Alpine Tea Stream": [
+        {"opt_num": 1, "name": "Black Tea Amber & Cool Slate", "primary": "#8C4A28", "accent": "#4A5868", "styling": "Grounded warm-amber tones over tailored slate chinos."},
+        {"opt_num": 2, "name": "Forest Hunter Green & Brushed Brass", "primary": "#1C3325", "accent": "#C5A059", "styling": "Mountain spring water and black tea balanced by deep organic greens."},
+        {"opt_num": 3, "name": "Mountain Slate & Crisp Sky Blue", "primary": "#3F4C5A", "accent": "#87A9C7", "styling": "Rushing alpine stream water over clean corporate slate."}
+    ],
+    "The Sparking Alpine Aromatic": [
+        {"opt_num": 1, "name": "Cobalt Blue & Optic White", "primary": "#1A4B8C", "accent": "#FFFFFF", "styling": "High-energy royal blue highlighting green apple, ginger, and rushing mountain spring water."},
+        {"opt_num": 2, "name": "Deep Indigo Denim & Heather Sterling", "primary": "#1C2D42", "accent": "#9AA3AB", "styling": "Clean corporate denim and metallic lift reflecting crisp sage and juniper."},
+        {"opt_num": 3, "name": "Dark Spruce & Oatmeal Stone", "primary": "#26382B", "accent": "#D1C7BD", "styling": "Captures tart green apple, juniper berries, and herbal sage over neutral linen."}
+    ]
 }
 DEFAULT_PALETTE = {"name": "Classic Executive Slate & White", "primary": "#2F3E46", "accent": "#F8F9FA", "styling": "Clean tailored neutral wardrobe with subtle brushed steel accent."}
 
@@ -592,7 +729,7 @@ with st.sidebar:
         st.cache_data.clear()
         st.success("Cache refreshed from Google Drive!")
 
-# Load Master Matrix & Live 3-Option Sartorial Registry
+# Load Master Matrix
 matrix_df, sartorial_registry = fetch_matrix_from_drive()
 
 # ---------------------------------------------------------
@@ -759,24 +896,22 @@ with tab_briefing:
         else:
             wash_recommendation = "Freshwater Body Wash (Clean Slate Universal Canvas)"
             
-        # ✅ New - Resolves all 3 palette options and tracks which one is currently selected
-        palettes = sartorial_registry.get(profile_name) or sartorial_registry.get(
-            f"{base_layer} + {top_layer}"
-        )
+        # Resolve multi-option sartorial palette list for this scent
+        palettes = sartorial_registry.get(profile_name) or sartorial_registry.get(f"{base_layer} + {top_layer}")
         if not palettes:
-          palettes = [DEFAULT_PALETTE]
+            palettes = [DEFAULT_PALETTE]
         elif isinstance(palettes, dict):
-          palettes = [palettes]
-
-        # Track palette index in session state for the shuffle button
+            palettes = [palettes]
+            
+        # Manage independent palette index in session state
         if "palette_idx" not in st.session_state:
-          st.session_state.palette_idx = 0
-
+            st.session_state.palette_idx = 0
+            
         current_opt_idx = st.session_state.palette_idx % len(palettes)
         sartorial = palettes[current_opt_idx]
         opt_num_display = sartorial.get("opt_num", current_opt_idx + 1)
         total_opts = len(palettes)
-
+            
         badge_style = "badge-solo" if is_solo else "badge-tag"
         
         # Primary Recipe Card (Full Mobile Width)
@@ -802,8 +937,9 @@ with tab_briefing:
         </div>
         """, unsafe_allow_html=True)
         
-        # Touch-Friendly Quick Reroll Button
+        # Touch-Friendly Quick Reroll Button (resets palette index to 1 for the new scent)
         if st.button("🎲 Roll Alternative Option for this Scenario", use_container_width=True):
+            st.session_state.palette_idx = 0
             st.rerun()
 
         # Strategic Application & Sartorial Accord Cards
@@ -829,32 +965,26 @@ with tab_briefing:
             </div>
             """, unsafe_allow_html=True)
 
-        # Sartorial Harmony Card
+        # Sartorial Harmony Card with Option Counter & Dedicated Shuffle Button
         st.markdown(f"""
-        # ✅ Lines 799–810 (New - Option Counter Badge + Dedicated Colorway Shuffle Button)
-# Sartorial Harmony Card with Option Counter & Dedicated Shuffle Button
-st.markdown(
-    f"""
-<div class="sartorial-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <h4 style="color: #58A6FF; margin: 0; font-size: 16px;">🎨 Sartorial Color Harmony</h4>
-        <span class="badge-tag">OPTION {opt_num_display} OF {total_opts}</span>
-    </div>
-    <div style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">{sartorial['name']}</div>
-    <div style="display: flex; gap: 16px; margin-bottom: 8px;">
-        <div><span class="swatch-box" style="background-color: {sartorial['primary']};"></span> Primary: <code>{sartorial['primary']}</code></div>
-        <div><span class="swatch-box" style="background-color: {sartorial['accent']};"></span> Accent: <code>{sartorial['accent']}</code></div>
-    </div>
-    <div style="font-size: 13px; color: #8B949E; margin-bottom: 6px;">{sartorial['styling']}</div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
-
-# Dedicated Palette Reroll Button (Only rotates colorway, keeps fragrance locked)
-if st.button("🎨 Shuffle Colorway (Option 1 / 2 / 3)", use_container_width=True):
-  st.session_state.palette_idx += 1
-  st.rerun()
+        <div class="sartorial-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h4 style="color: #58A6FF; margin: 0; font-size: 16px;">🎨 Sartorial Color Harmony</h4>
+                <span class="badge-tag">OPTION {opt_num_display} OF {total_opts}</span>
+            </div>
+            <div style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">{sartorial['name']}</div>
+            <div style="display: flex; gap: 16px; margin-bottom: 8px;">
+                <div><span class="swatch-box" style="background-color: {sartorial['primary']};"></span> Primary: <code>{sartorial['primary']}</code></div>
+                <div><span class="swatch-box" style="background-color: {sartorial['accent']};"></span> Accent: <code>{sartorial['accent']}</code></div>
+            </div>
+            <div style="font-size: 13px; color: #8B949E; margin-bottom: 6px;">{sartorial['styling']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Dedicated Palette Reroll Button (Only rotates colorway, keeps fragrance locked)
+        if st.button("🎨 Shuffle Colorway (Option 1 / 2 / 3)", use_container_width=True):
+            st.session_state.palette_idx += 1
+            st.rerun()
 
     else:
         st.warning("No pairing recipes found in the active matrix sheets for this scenario. Please verify your Google Sheet tabs.")
