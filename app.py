@@ -960,9 +960,9 @@ with tab_briefing:
             if "palette_idx" in st.session_state:
                 st.session_state.palette_idx = 0
             st.rerun()
-
-        # Strategic Application & Sartorial Accord Cards
-        st.markdown(f"""
+            
+        # Strategic Application Card
+        st.markdown(textwrap.dedent(f"""
         <div class="sartorial-card">
             <h4 style="color: #58A6FF; margin: 0 0 8px 0; font-size: 16px;">🎯 Application Strategy</h4>
             <div style="font-size: 13.5px; color: #E6EDF3; line-height: 1.5;">
@@ -973,19 +973,10 @@ with tab_briefing:
                 <span style="color: #8B949E; font-size: 12.5px; font-style: italic;">{canvas_reason}</span>
             </div>
         </div>
-        """, unsafe_allow_html=True)
-        
-        temp_range = wx["high"] - wx["low"]
-        if temp_range >= 18.0:
-            st.markdown(f"""
-            <div style="background-color: rgba(235, 142, 60, 0.1); border-left: 4px solid #F0883E; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 13px;">
-                <strong>Transitional Swing Notice:</strong> {temp_range:.0f}°F delta between Low ({wx['low']:.0f}°F) and High ({wx['high']:.0f}°F). 
-                The chosen formula opens with sufficient crispness for early chill while resting on an anchor that will not turn cloying once afternoon peak temperatures are reached.
-            </div>
-            """, unsafe_allow_html=True)
+        """), unsafe_allow_html=True)
 
-        # Sartorial Harmony Card with Option Counter & Dedicated Shuffle Button
-        st.markdown(f"""
+        # Sartorial Harmony Card
+        st.markdown(textwrap.dedent(f"""
         <div class="sartorial-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <h4 style="color: #58A6FF; margin: 0; font-size: 16px;">🎨 Sartorial Color Harmony</h4>
@@ -998,7 +989,7 @@ with tab_briefing:
             </div>
             <div style="font-size: 13px; color: #8B949E; margin-bottom: 6px;">{sartorial['styling']}</div>
         </div>
-        """, unsafe_allow_html=True)
+        """), unsafe_allow_html=True)
         
         # Dedicated Palette Reroll Button (Only rotates colorway, keeps fragrance locked)
         if st.button("🎨 Shuffle Colorway (Option 1 / 2 / 3)", use_container_width=True):
