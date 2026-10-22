@@ -746,6 +746,9 @@ tab_briefing, tab_explorer, tab_directory, tab_planner = st.tabs([
 # TAB 1: DAILY BRIEFING & OPS (MOBILE-FIRST CARD STACK)
 # ---------------------------------------------------------
 with tab_briefing:
+    # Initialize session state tracker for daily briefing rerolls
+    if "reroll_counter" not in st.session_state:
+      st.session_state.reroll_counter = 0
     # Compact Mobile Weather & Location Header Bar
     st.markdown(f"""
     <div class="mobile-weather-bar">
@@ -848,12 +851,31 @@ with tab_briefing:
             scenario_filtered_df = scenario_filtered_df[warm_mask]
 
     if not scenario_filtered_df.empty:
-        today_num = datetime.date.today().toordinal()
-        badge_seed = sum(ord(c) for c in target_badge)
-        wx_seed = int(wx["temp"] * 3 + wx["humidity"] + wx["rain_chance"] + wx["wind_chill"])
-        random.seed(today_num + wx_seed + badge_seed)
+      today_num = datetime.date.today().toordinal()
+      badge_seed = sum(ord(c) for c in target_badge)
+      wx_seed = int(
+          wx["temp"] * 3
+          + wx["humidity"]
+          + wx["rain_chance"]
+          + wx["wind_chill"]
+      )
+
+      # Factor in reroll counter so every button click changes the random seed
+      total_seed = (
+          today_num + wx_seed + badge_seed + st.session_state.reroll_counter
+      )
+      random.seed(total_seed)
+
+      # Ensure a new option is picked if more than one option exists
+      if len(scenario_filtered_df) > 1 and "last_idx" in st.session_state:
         daily_idx = random.randint(0, len(scenario_filtered_df) - 1)
-        daily_choice = scenario_filtered_df.iloc[daily_idx]
+        if daily_idx == st.session_state.last_idx:
+          daily_idx = (daily_idx + 1) % len(scenario_filtered_df)
+      else:
+        daily_idx = random.randint(0, len(scenario_filtered_df) - 1)
+
+      st.session_state.last_idx = daily_idx
+      daily_choice = scenario_filtered_df.iloc[daily_idx]
         
         def safe_val(val, fallback="N/A"):
             s = str(val).strip()
@@ -938,9 +960,15 @@ with tab_briefing:
         """, unsafe_allow_html=True)
         
         # Touch-Friendly Quick Reroll Button (resets palette index to 1 for the new scent)
-        if st.button("🎲 Roll Alternative Option for this Scenario", use_container_width=True):
-            st.session_state.palette_idx = 0
-            st.rerun()
+        # Touch-Friendly Quick Reroll Button
+        if st.button(
+            "🎲 Roll Alternative Option for this Scenario",
+            use_container_width=True,
+        ):
+          st.session_state.reroll_counter += 1
+          if "palette_idx" in st.session_state:
+            st.session_state.palette_idx = 0  # Resets colorway to Option 1 for the newly rolled scent
+          st.rerun()
 
         # Strategic Application & Sartorial Accord Cards
         st.markdown(f"""
