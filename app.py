@@ -6,6 +6,13 @@ import random
 import gspread
 from google.oauth2.service_account import Credentials
 
+# Optional import for browser/phone GPS geolocation
+try:
+    from streamlit_js_eval import get_geolocation
+    HAS_GEOLOCATION = True
+except ImportError:
+    HAS_GEOLOCATION = False
+
 # ---------------------------------------------------------
 # PAGE CONFIGURATION & STYLING
 # ---------------------------------------------------------
@@ -16,10 +23,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling
+# Custom Styling (Dark Mode Executive Palette)
 st.markdown("""
 <style>
-    /* Dark Mode Executive Theme */
     .metric-card {
         background: linear-gradient(145deg, #161B22 0%, #1C2128 100%);
         border-radius: 10px;
@@ -96,7 +102,6 @@ def fetch_matrix_from_drive():
         all_dfs = []
         for ws in spreadsheet.worksheets():
             ws_title_lower = ws.title.strip().lower()
-            # Skip non-pairing tabs (Directory, Rules & Tips, Sartorial Palettes, etc.)
             if any(term in ws_title_lower for term in NON_PAIRING_SHEETS):
                 continue
 
@@ -109,7 +114,6 @@ def fetch_matrix_from_drive():
         
         if all_dfs:
             master = pd.concat(all_dfs, ignore_index=True)
-            # Filter out empty or header/artifact rows where Base Layer or Top Layer is missing
             master = master[
                 master["Base Layer"].notna() & 
                 (master["Base Layer"].astype(str).str.strip() != "") &
@@ -155,9 +159,9 @@ def get_fallback_dataframe():
     return pd.DataFrame(data)
 
 # ---------------------------------------------------------
-# METEOROLOGICAL TELEMETRY (OPEN-METEO)
+# METEOROLOGICAL & GEOLOCATION LAYER
 # ---------------------------------------------------------
-CITIES = {
+PRESET_CITIES = {
     "Washington, D.C.": {"lat": 38.9072, "lon": -77.0369},
     "New York, NY": {"lat": 40.7128, "lon": -74.0060},
     "Miami, FL": {"lat": 25.7617, "lon": -80.1918},
@@ -177,6 +181,20 @@ def get_live_weather(lat, lon):
         return temp, wind
     except Exception:
         return 65.0, 5.0
+
+@st.cache_data(ttl=3600)
+def reverse_geocode_coords(lat, lon):
+    """Translates GPS coordinates into a human-readable city/region name."""
+    try:
+        url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json"
+        headers = {"User-Agent": "FragranceOpsWeb/1.0"}
+        r = requests.get(url, headers=headers, timeout=5).json()
+        addr = r.get("address", {})
+        city = addr.get("city") or addr.get("town") or addr.get("village") or addr.get("county") or "Local Area"
+        state = addr.get("state", "")
+        return f"{city}, {state}".strip(", ")
+    except Exception:
+        return f"{lat:.2f}°, {lon:.2f}°"
 
 def determine_seasonal_band(temp):
     if temp < 45:
@@ -202,22 +220,53 @@ SARTORIAL_MAP = {
 DEFAULT_PALETTE = {"name": "Classic Executive Slate & White", "primary": "#2F3E46", "accent": "#F8F9FA", "styling": "Clean tailored neutral wardrobe with subtle brushed steel accent."}
 
 # ---------------------------------------------------------
-# SIDEBAR CONTROLS
+# SIDEBAR CONTROLS & DYNAMIC LOCATION RESOLUTION
 # ---------------------------------------------------------
 with st.sidebar:
     st.image("https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=500&auto=format&fit=crop&q=60", use_container_width=True)
     st.title("Fragrance Ops")
-    st.caption("Live Google Drive Matrix • DMV Operations")
-    
+    st.caption("Live Google Drive Matrix • Climate Engine")
     st.markdown("---")
-    st.subheader("📍 Location & Climate")
-    selected_city = st.selectbox("Current Location", list(CITIES.keys()), index=0)
-    city_data = CITIES[selected_city]
     
-    temp, wind = get_live_weather(city_data["lat"], city_data["lon"])
+    st.subheader("📍 Location Mode")
+    loc_mode = st.radio(
+        "Source",
+        ["📱 Phone GPS (Live)", "🏙️ City Presets / Manual"],
+        index=0 if HAS_GEOLOCATION else 1
+    )
+    
+    active_location_label = "Washington, D.C."
+    current_lat = PRESET_CITIES["Washington, D.C."]["lat"]
+    current_lon = PRESET_CITIES["Washington, D.C."]["lon"]
+    
+    if loc_mode == "📱 Phone GPS (Live)":
+        if HAS_GEOLOCATION:
+            device_loc = get_geolocation()
+            if device_loc and "coords" in device_loc:
+                current_lat = device_loc["coords"]["latitude"]
+                current_lon = device_loc["coords"]["longitude"]
+                resolved_name = reverse_geocode_coords(current_lat, current_lon)
+                active_location_label = f"📱 {resolved_name}"
+                st.success(f"Locked to device GPS: **{resolved_name}**")
+            else:
+                st.info("Tap **Allow** if prompted by your phone browser to share GPS coordinates. Defaulting to D.C. baseline.")
+                active_location_label = "Washington, D.C. (Default)"
+        else:
+            st.warning("`streamlit-js-eval` not installed. Add it to `requirements.txt` to enable phone GPS.")
+            active_location_label = "Washington, D.C. (Default)"
+    else:
+        selected_city = st.selectbox("Select Preset", list(PRESET_CITIES.keys()), index=0)
+        current_lat = PRESET_CITIES[selected_city]["lat"]
+        current_lon = PRESET_CITIES[selected_city]["lon"]
+        active_location_label = f"🏙️ {selected_city}"
+
+    # Fetch live weather based on resolved coordinates
+    temp, wind = get_live_weather(current_lat, current_lon)
     active_band = determine_seasonal_band(temp)
     
+    st.markdown("---")
     st.metric("Live Ambient Temp", f"{temp:.1f} °F", f"Wind: {wind} mph")
+    st.caption(f"Location: **{active_location_label}**")
     st.info(f"**Target Seasonal Band:** {active_band}")
     
     if st.button("🔄 Sync with Google Drive Now"):
@@ -241,7 +290,7 @@ tab_briefing, tab_explorer, tab_directory = st.tabs([
 # ---------------------------------------------------------
 with tab_briefing:
     st.header("Daily Operational Scent Briefing")
-    st.caption("Automated desk-safe selection governed by today's atmospheric thermodynamics.")
+    st.caption(f"Atmospheric thermodynamics locked to {active_location_label} ({temp:.1f}°F).")
     
     # Filter matrix for office safe combinations (WP or EC)
     scen_col = matrix_df.get("Eligible Scenarios", pd.Series([], dtype=str))
@@ -250,18 +299,15 @@ with tab_briefing:
         scen_col.str.contains("EC", case=False, na=False)
     ]
     
-    # Fallback to all rows with valid base layers if scenario filter returned empty
     if office_df.empty:
         office_df = matrix_df[matrix_df["Base Layer"] != ""]
     
     if not office_df.empty:
-        # Pseudo-random selection based on date seed
         today_num = datetime.date.today().toordinal()
         random.seed(today_num + int(temp))
         daily_idx = random.randint(0, len(office_df) - 1)
         daily_choice = office_df.iloc[daily_idx]
         
-        # Safe extraction helper to prevent 'nan' strings
         def safe_val(val, fallback="N/A"):
             s = str(val).strip()
             return fallback if not s or s.lower() == "nan" else s
@@ -343,7 +389,6 @@ with tab_explorer:
     with col_f3:
         primer_opt = st.selectbox("Particle Primer Compatible", ["Any", "Yes", "No"])
         
-    # Filtering logic
     filtered_df = matrix_df.copy()
     if chosen_season != "All Sheets / Bands" and "Season_Sheet" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["Season_Sheet"] == chosen_season]
