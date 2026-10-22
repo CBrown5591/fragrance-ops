@@ -3,7 +3,6 @@ import pandas as pd
 import requests
 import datetime
 import random
-import re
 import gspread
 from google.oauth2.service_account import Credentials
 
@@ -23,9 +22,10 @@ st.markdown("""
     .metric-card {
         background-color: #f8f9fa;
         border-radius: 8px;
-        padding: 16px;
-        border-left: 5px solid #1F497D;
+        padding: 18px;
+        border-left: 6px solid #1F497D;
         margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     .swatch-box {
         display: inline-block;
@@ -46,15 +46,6 @@ st.markdown("""
         color: #1F497D;
         margin-right: 4px;
     }
-    .warning-box {
-        background-color: #FFF3CD;
-        border-left: 4px solid #FFA000;
-        padding: 10px 14px;
-        border-radius: 6px;
-        margin: 10px 0;
-        font-size: 13px;
-        color: #664D03;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -64,6 +55,10 @@ st.markdown("""
 SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
+]
+
+NON_PAIRING_SHEETS = [
+    "directory", "rules", "tips", "sartorial", "inventory", "rankings"
 ]
 
 @st.cache_data(ttl=300, show_spinner="Syncing with Fragrance Matrix in Google Drive...")
@@ -85,15 +80,28 @@ def fetch_matrix_from_drive():
         
         all_dfs = []
         for ws in spreadsheet.worksheets():
+            ws_title_lower = ws.title.strip().lower()
+            # Skip non-pairing tabs (Directory, Rules & Tips, Sartorial Palettes, etc.)
+            if any(term in ws_title_lower for term in NON_PAIRING_SHEETS):
+                continue
+
             records = ws.get_all_records()
             if records:
                 w_df = pd.DataFrame(records)
                 w_df["Season_Sheet"] = ws.title
+                w_df = clean_matrix_columns(w_df)
                 all_dfs.append(w_df)
         
         if all_dfs:
             master = pd.concat(all_dfs, ignore_index=True)
-            return clean_matrix_columns(master)
+            # Filter out empty or header/artifact rows where Base Layer or Top Layer is missing
+            master = master[
+                master["Base Layer"].notna() & 
+                (master["Base Layer"].astype(str).str.strip() != "") &
+                (master["Base Layer"].astype(str).str.strip().str.lower() != "nan")
+            ]
+            master.fillna("", inplace=True)
+            return master
         return get_fallback_dataframe()
     except Exception as e:
         st.sidebar.error(f"Google Drive Sync Notice: {e}")
@@ -112,8 +120,9 @@ def clean_matrix_columns(df):
         'Particle Primer Compatible': 'Particle Primer Compatible'
     }
     for orig in df.columns:
+        clean_orig = str(orig).strip()
         for standard in col_map:
-            if orig.strip().lower() == standard.lower():
+            if clean_orig.lower() == standard.lower() or standard.lower() in clean_orig.lower():
                 df.rename(columns={orig: standard}, inplace=True)
                 break
     return df
@@ -144,12 +153,12 @@ CITIES = {
 
 @st.cache_data(ttl=900)
 def get_live_weather(lat, lon):
-    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true&hourly=relative_humidity_2m&temperature_unit=fahrenheit"
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true&temperature_unit=fahrenheit"
     try:
         r = requests.get(url, timeout=5).json()
         curr = r.get("current_weather", {})
-        temp = curr.get("temperature", 65.0)
-        wind = curr.get("windspeed", 5.0)
+        temp = float(curr.get("temperature", 65.0))
+        wind = float(curr.get("windspeed", 5.0))
         return temp, wind
     except Exception:
         return 65.0, 5.0
@@ -219,63 +228,82 @@ with tab_briefing:
     st.header("Daily Operational Scent Briefing")
     st.caption("Automated desk-safe selection governed by today's atmospheric thermodynamics.")
     
-    # Filter matrix for office safe combinations
+    # Filter matrix for office safe combinations (WP or EC)
+    scen_col = matrix_df.get("Eligible Scenarios", pd.Series([], dtype=str))
     office_df = matrix_df[
-        matrix_df["Eligible Scenarios"].str.contains("WP", case=False, na=False) |
-        matrix_df["Eligible Scenarios"].str.contains("EC", case=False, na=False)
+        scen_col.str.contains("WP", case=False, na=False) |
+        scen_col.str.contains("EC", case=False, na=False)
     ]
     
+    # Fallback to all rows with valid base layers if scenario filter returned empty
     if office_df.empty:
-        office_df = matrix_df
+        office_df = matrix_df[matrix_df["Base Layer"] != ""]
+    
+    if not office_df.empty:
+        # Pseudo-random selection based on date seed
+        today_num = datetime.date.today().toordinal()
+        random.seed(today_num + int(temp))
+        daily_idx = random.randint(0, len(office_df) - 1)
+        daily_choice = office_df.iloc[daily_idx]
         
-    # Rotate by day of week or manual roll
-    today_weekday = datetime.date.today().weekday()
-    random.seed(today_weekday + int(temp))
-    daily_choice = office_df.iloc[random.randint(0, len(office_df) - 1)]
-    
-    # Determine Canvas
-    canvas_recommendation = "Unscented Body Butter" if temp < 65 else "Unscented Body Lotion"
-    canvas_reason = "Crucial to bind volatile base timbers and leatherwood against crisp damp air." if temp < 65 else "Lightweight hydration preventing heavy oils from suffocating under warmer ambient heat."
-    
-    # Sartorial Match
-    profile_name = daily_choice.get("Custom Profile Name", "Custom Alpha")
-    sartorial = SARTORIAL_MAP.get(profile_name, DEFAULT_PALETTE)
-    
-    col1, col2 = st.columns([1.8, 1.2])
-    
-    with col1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <span class="badge-tag">PRIMARY WORKDAY PICK</span>
-            <span class="badge-tag">{daily_choice.get('Pairing Type', 'Layering')}</span>
-            <span class="badge-tag">Primer: {daily_choice.get('Particle Primer Compatible', 'Yes')}</span>
-            <h2 style="color: #1F497D; margin-top: 8px;">{profile_name}</h2>
-            <p><strong>Base Layer:</strong> {daily_choice.get('Base Layer', 'N/A')}<br>
-            <strong>Top Layer:</strong> {daily_choice.get('Top Layer', 'N/A')}</p>
-            <p style="font-style: italic; color: #4A4A4A;">"{daily_choice.get('Scent Profile & Notes Breakdown', 'N/A')}"</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.subheader("🎯 Application Strategy")
-        st.write(f"- **Projection Cap:** {daily_choice.get('Projection Strength', 'Controlled Moderate (3–4 ft)')}")
-        st.write("- **Spray Distribution:** 4 sprays total (1 behind each ear, 1 center chest directly over cream canvas, 1 across collar/lapel).")
-        st.write(f"- **Grooming Canvas:** **{canvas_recommendation}** — *{canvas_reason}*")
+        # Safe extraction helper to prevent 'nan' strings
+        def safe_val(val, fallback="N/A"):
+            s = str(val).strip()
+            return fallback if not s or s.lower() == "nan" else s
 
-    with col2:
-        st.subheader("🎨 Sartorial Color Harmony")
-        st.markdown(f"""
-        <div style="background-color: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 8px; padding: 16px;">
-            <div style="font-weight: 600; font-size: 16px; margin-bottom: 8px;">{sartorial['name']}</div>
-            <p style="margin: 4px 0;"><span class="swatch-box" style="background-color: {sartorial['primary']};"></span> Primary: <code>{sartorial['primary']}</code></p>
-            <p style="margin: 4px 0;"><span class="swatch-box" style="background-color: {sartorial['accent']};"></span> Accent: <code>{sartorial['accent']}</code></p>
-            <div style="margin-top: 10px; font-size: 13px; color: #555;">{sartorial['styling']}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        profile_name = safe_val(daily_choice.get("Custom Profile Name"), "Custom Executive Profile")
+        pairing_type = safe_val(daily_choice.get("Pairing Type"), "Body Cream Layer")
+        base_layer = safe_val(daily_choice.get("Base Layer"), "Graphite Cream")
+        top_layer = safe_val(daily_choice.get("Top Layer"), "Alt. Identity (YSL MYSLF)")
+        primer_compat = safe_val(daily_choice.get("Particle Primer Compatible"), "Yes")
+        projection = safe_val(daily_choice.get("Projection Strength"), "Moderate (3–4 ft)")
+        scent_notes = safe_val(daily_choice.get("Scent Profile & Notes Breakdown"), "Balanced office sillage honoring modern clean aromatics.")
         
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.subheader("🔄 Alternate Roll")
-        if st.button("Generate Alternative Recipe"):
-            st.rerun()
+        # Determine Canvas
+        canvas_recommendation = "Unscented Body Butter" if temp < 65 else "Unscented Body Lotion"
+        canvas_reason = "Crucial to bind volatile base timbers and leatherwood against crisp damp air." if temp < 65 else "Lightweight hydration preventing heavy oils from suffocating under warmer ambient heat."
+        
+        sartorial = SARTORIAL_MAP.get(profile_name, DEFAULT_PALETTE)
+        
+        col1, col2 = st.columns([1.8, 1.2])
+        
+        with col1:
+            st.markdown(f"""
+            <div class="metric-card">
+                <span class="badge-tag">PRIMARY WORKDAY PICK</span>
+                <span class="badge-tag">{pairing_type}</span>
+                <span class="badge-tag">Primer: {primer_compat}</span>
+                <h2 style="color: #1F497D; margin-top: 8px;">{profile_name}</h2>
+                <p style="font-size: 15px; margin-bottom: 6px;">
+                    <strong>Base Layer:</strong> {base_layer}<br>
+                    <strong>Top Layer:</strong> {top_layer}
+                </p>
+                <p style="font-style: italic; color: #4A4A4A; font-size: 13.5px;">"{scent_notes}"</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.subheader("🎯 Application Strategy")
+            st.write(f"- **Projection Cap:** {projection}")
+            st.write("- **Spray Distribution:** 4 sprays total (1 behind each ear, 1 center chest directly over cream canvas, 1 across collar/lapel).")
+            st.write(f"- **Grooming Canvas:** **{canvas_recommendation}** — *{canvas_reason}*")
+
+        with col2:
+            st.subheader("🎨 Sartorial Color Harmony")
+            st.markdown(f"""
+            <div style="background-color: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 8px; padding: 16px;">
+                <div style="font-weight: 600; font-size: 16px; margin-bottom: 8px;">{sartorial['name']}</div>
+                <p style="margin: 4px 0;"><span class="swatch-box" style="background-color: {sartorial['primary']};"></span> Primary: <code>{sartorial['primary']}</code></p>
+                <p style="margin: 4px 0;"><span class="swatch-box" style="background-color: {sartorial['accent']};"></span> Accent: <code>{sartorial['accent']}</code></p>
+                <div style="margin-top: 10px; font-size: 13px; color: #555;">{sartorial['styling']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.subheader("🔄 Alternate Roll")
+            if st.button("Generate Alternative Recipe"):
+                st.rerun()
+    else:
+        st.warning("No pairing recipes found in the active matrix sheets. Please verify your Google Sheet tabs.")
 
 # ---------------------------------------------------------
 # TAB 2: MATRIX EXPLORER & GENERATOR
@@ -288,7 +316,7 @@ with tab_explorer:
     
     with col_f1:
         if "Season_Sheet" in matrix_df.columns:
-            seasons = ["All Sheets / Bands"] + sorted(list(matrix_df["Season_Sheet"].dropna().unique()))
+            seasons = ["All Sheets / Bands"] + sorted([s for s in matrix_df["Season_Sheet"].unique() if str(s).strip() != ""])
             chosen_season = st.selectbox("Seasonal Sheet", seasons)
         else:
             chosen_season = "All Sheets / Bands"
@@ -305,14 +333,13 @@ with tab_explorer:
     if chosen_season != "All Sheets / Bands" and "Season_Sheet" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["Season_Sheet"] == chosen_season]
         
-    if chosen_scen != "All Scenarios":
+    if chosen_scen != "All Scenarios" and "Eligible Scenarios" in filtered_df.columns:
         badge = chosen_scen.split()[0]
         filtered_df = filtered_df[filtered_df["Eligible Scenarios"].str.contains(badge, case=False, na=False)]
         
     if primer_opt != "Any" and "Particle Primer Compatible" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["Particle Primer Compatible"].astype(str).str.strip().str.lower() == primer_opt.lower()]
 
-    # Quick Generator Card
     st.markdown("---")
     gen_col1, gen_col2 = st.columns([2, 1])
     with gen_col1:
@@ -321,15 +348,12 @@ with tab_explorer:
         if st.button("🎲 Surprise Me (Random Pair from Filter)"):
             if not filtered_df.empty:
                 pick = filtered_df.sample(1).iloc[0]
-                st.info(f"**Random Pick:** **{pick.get('Custom Profile Name')}** ({pick.get('Base Layer')} + {pick.get('Top Layer')})*{pick.get('Scent Profile & Notes Breakdown')}*")
+                st.info(f"**Random Pick:** **{pick.get('Custom Profile Name')}** ({pick.get('Base Layer')} + {pick.get('Top Layer')})\n\n*{pick.get('Scent Profile & Notes Breakdown')}*")
             else:
                 st.warning("No entries match the current filter.")
                 
-    st.dataframe(
-        filtered_df[['Custom Profile Name', 'Pairing Type', 'Base Layer', 'Top Layer', 'Eligible Scenarios', 'Projection Strength', 'Scent Profile & Notes Breakdown']],
-        use_container_width=True,
-        hide_index=True
-    )
+    display_cols = [c for c in ['Custom Profile Name', 'Pairing Type', 'Base Layer', 'Top Layer', 'Eligible Scenarios', 'Projection Strength', 'Scent Profile & Notes Breakdown'] if c in filtered_df.columns]
+    st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True)
     
     # Boundary Clash Checker
     st.markdown("### ⚠️ Boundary Clash Checker")
@@ -372,6 +396,7 @@ with tab_directory:
         mask = matrix_df.astype(str).apply(lambda row: row.str.contains(search_query, case=False).any(), axis=1)
         search_res = matrix_df[mask]
         st.write(f"Found **{len(search_res)}** references:")
-        st.dataframe(search_res[['Custom Profile Name', 'Base Layer', 'Top Layer', 'Scent Profile & Notes Breakdown']], use_container_width=True, hide_index=True)
+        disp_cols = [c for c in ['Custom Profile Name', 'Base Layer', 'Top Layer', 'Scent Profile & Notes Breakdown'] if c in search_res.columns]
+        st.dataframe(search_res[disp_cols], use_container_width=True, hide_index=True)
     else:
         st.info("Type a note (e.g. 'bergamot', 'leatherwood', 'pear') or fragrance name above to query matching profiles.")
