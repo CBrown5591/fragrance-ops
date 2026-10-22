@@ -15,97 +15,136 @@ except ImportError:
     HAS_GEOLOCATION = False
 
 # ---------------------------------------------------------
-# PAGE CONFIGURATION & STYLING
+# PAGE CONFIGURATION & MOBILE-FIRST STYLING
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Fragrance Ops Command Center",
+    page_title="Fragrance Ops",
     page_icon="🧴",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"  # Mobile friendly: sidebar starts closed so primary card is front and center
 )
 
-# Custom Styling (Dark Mode Executive Palette)
+# Custom Mobile-Optimized Dark Mode CSS
 st.markdown("""
 <style>
+    /* Responsive Global Container */
+    @media (max-width: 768px) {
+        .main .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 2.5rem !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+        }
+        /* Force side-by-side columns to stack vertically on mobile */
+        [data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+            margin-bottom: 0.75rem !important;
+        }
+        /* Mobile Touch Target sizing */
+        .stButton button {
+            width: 100% !important;
+            height: 48px !important;
+            font-size: 15px !important;
+            font-weight: 600 !important;
+            border-radius: 8px !important;
+        }
+        /* Tab bar horizontal scroll styling */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 6px !important;
+            padding-bottom: 6px !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+        .stTabs [data-baseweb="tab"] {
+            padding: 8px 12px !important;
+            font-size: 13px !important;
+            white-space: nowrap !important;
+        }
+    }
+
+    /* Core Executive Theme Cards */
     .metric-card {
         background: linear-gradient(145deg, #161B22 0%, #1C2128 100%);
-        border-radius: 10px;
-        padding: 22px;
+        border-radius: 12px;
+        padding: 18px;
         border-left: 6px solid #58A6FF;
         border-top: 1px solid rgba(255, 255, 255, 0.08);
         border-right: 1px solid rgba(255, 255, 255, 0.05);
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        margin-bottom: 16px;
+        margin-bottom: 14px;
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
     }
     .swatch-box {
         display: inline-block;
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
         border-radius: 6px;
         vertical-align: middle;
-        margin-right: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-right: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
     }
     .badge-tag {
         display: inline-block;
-        padding: 4px 10px;
-        border-radius: 14px;
+        padding: 3px 8px;
+        border-radius: 12px;
         font-size: 11px;
         font-weight: 600;
-        letter-spacing: 0.4px;
+        letter-spacing: 0.3px;
         background-color: rgba(56, 139, 253, 0.15);
         color: #58A6FF;
         border: 1px solid rgba(56, 139, 253, 0.3);
-        margin-right: 6px;
+        margin-right: 4px;
         margin-bottom: 4px;
     }
     .badge-solo {
         display: inline-block;
-        padding: 4px 10px;
-        border-radius: 14px;
+        padding: 3px 8px;
+        border-radius: 12px;
         font-size: 11px;
         font-weight: 600;
-        letter-spacing: 0.4px;
+        letter-spacing: 0.3px;
         background-color: rgba(235, 142, 60, 0.15);
         color: #F0883E;
         border: 1px solid rgba(235, 142, 60, 0.35);
-        margin-right: 6px;
+        margin-right: 4px;
         margin-bottom: 4px;
     }
     .badge-scenario {
         display: inline-block;
-        padding: 4px 10px;
-        border-radius: 14px;
+        padding: 3px 8px;
+        border-radius: 12px;
         font-size: 11px;
         font-weight: 600;
-        letter-spacing: 0.4px;
+        letter-spacing: 0.3px;
         background-color: rgba(163, 113, 247, 0.15);
         color: #BC8CFF;
         border: 1px solid rgba(163, 113, 247, 0.35);
-        margin-right: 6px;
+        margin-right: 4px;
         margin-bottom: 4px;
     }
     .badge-weather {
         display: inline-block;
-        padding: 4px 10px;
-        border-radius: 14px;
+        padding: 3px 8px;
+        border-radius: 12px;
         font-size: 11px;
         font-weight: 600;
-        letter-spacing: 0.4px;
+        letter-spacing: 0.3px;
         background-color: rgba(57, 211, 83, 0.15);
         color: #39D353;
         border: 1px solid rgba(57, 211, 83, 0.35);
-        margin-right: 6px;
+        margin-right: 4px;
         margin-bottom: 4px;
     }
     .sartorial-card {
         background: #161B22;
         border: 1px solid #30363D;
         border-radius: 10px;
-        padding: 18px;
+        padding: 16px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+        margin-bottom: 12px;
     }
     .capsule-card {
         background: #161B22;
@@ -113,6 +152,19 @@ st.markdown("""
         border-radius: 10px;
         padding: 16px;
         margin-bottom: 12px;
+    }
+    /* Compact mobile weather bar */
+    .mobile-weather-bar {
+        background: #161B22;
+        border: 1px solid #30363D;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 14px;
+        font-size: 13.5px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -286,19 +338,12 @@ def get_comprehensive_weather(lat, lon):
 
 @st.cache_data(ttl=3600)
 def search_city_geocoding(query):
-    """
-    Robust city geocoder:
-    1. Checks PRESET_CITIES for direct substring or alias matches (e.g. St. Thomas -> St. Thomas, USVI).
-    2. Handles abbreviations ('St.' -> 'Saint').
-    3. Queries Open-Meteo Geocoding API with fallbacks.
-    """
     if not query or len(query.strip()) < 2:
         return []
     
     q_clean = query.strip()
     q_low = q_clean.lower()
     
-    # 1. Direct check against PRESET_CITIES
     preset_matches = []
     for p_name, p_coords in PRESET_CITIES.items():
         p_low = p_name.lower()
@@ -311,7 +356,6 @@ def search_city_geocoding(query):
     if preset_matches:
         return preset_matches
         
-    # 2. Query Open-Meteo Geocoding with name variants
     queries_to_try = [q_clean]
     if "st." in q_low:
         queries_to_try.append(re.sub(r'\bst\.\b', 'Saint', q_clean, flags=re.IGNORECASE))
@@ -344,7 +388,6 @@ def search_city_geocoding(query):
         except Exception:
             continue
             
-    # Known Island/Territory Fallbacks
     if "thomas" in q_low or "virgin" in q_low or "usvi" in q_low:
         return [{
             "label": "St. Thomas, U.S. Virgin Islands",
@@ -517,18 +560,23 @@ matrix_df = fetch_matrix_from_drive()
 # MAIN APP TABS
 # ---------------------------------------------------------
 tab_briefing, tab_explorer, tab_directory, tab_planner = st.tabs([
-    "👔 Daily Briefing & Ops",
-    "🔍 Matrix Explorer & Generator",
-    "📖 Standalone Directory",
-    "🧳 Trip Capsule Planner"
+    "👔 Daily Brief",
+    "🔍 Explorer",
+    "📖 Directory",
+    "🧳 Trip Planner"
 ])
 
 # ---------------------------------------------------------
-# TAB 1: DAILY BRIEFING & OPS (ATMOSPHERICALLY WEIGHTED)
+# TAB 1: DAILY BRIEFING & OPS (MOBILE-FIRST CARD STACK)
 # ---------------------------------------------------------
 with tab_briefing:
-    st.header("Daily Operational Scent Briefing")
-    st.caption(f"Atmospheric thermodynamics locked to {active_location_label} ({wx['temp']:.1f}°F, High {wx['high']:.0f}°F / Low {wx['low']:.0f}°F, {wx['humidity']}% Humidity).")
+    # Compact Mobile Weather & Location Header Bar
+    st.markdown(f"""
+    <div class="mobile-weather-bar">
+        <div>📍 <strong>{active_location_label}</strong></div>
+        <div>🌡️ <strong>{wx['temp']:.1f}°F</strong> (H: {wx['high']:.0f}° | L: {wx['low']:.0f}°) • 💧 {wx['humidity']}%</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     SCENARIO_OPTIONS = {
         "💼 Work & Professional (Office Desk, Meetings, Leadership)": {
@@ -574,15 +622,13 @@ with tab_briefing:
         default_idx = 4
         
     selected_scenario_label = st.selectbox(
-        "🎯 Select Operational Scenario Context",
+        "🎯 Operational Scenario Context",
         list(SCENARIO_OPTIONS.keys()),
         index=default_idx
     )
     
     scen_meta = SCENARIO_OPTIONS[selected_scenario_label]
     target_badge = scen_meta["badge"]
-    
-    st.caption(f"*{scen_meta['desc']}*")
     
     candidate_df = matrix_df.copy()
     if rotation_mode == "🎯 Standalone Solo Only":
@@ -600,7 +646,7 @@ with tab_briefing:
     
     is_damp = (wx["humidity"] >= 70 or wx["rain_chance"] >= 35)
     if is_damp:
-        weather_tags.append("🌧️ Rain / High Humidity Anchor Active")
+        weather_tags.append("🌧️ Rain/Humidity Anchor")
         damp_mask = scenario_filtered_df["Scent Profile & Notes Breakdown"].str.contains(
             "sage|vetiver|leatherwood|ambroxan|oak|birch|ginger|cedar|pepper", case=False, na=False
         )
@@ -609,7 +655,7 @@ with tab_briefing:
             
     is_chilly = (wx["wind_chill"] < 50.0)
     if is_chilly:
-        weather_tags.append("❄️ Wind Chill Suppression Active")
+        weather_tags.append("❄️ Wind Chill Shield")
         chill_mask = ~scenario_filtered_df["Scent Profile & Notes Breakdown"].str.contains(
             "eau fraiche|frozen grapefruit|lime zest|coconut water", case=False, na=False
         )
@@ -618,7 +664,7 @@ with tab_briefing:
 
     is_warm_spike = (wx["high"] >= 78.0)
     if is_warm_spike:
-        weather_tags.append("☀️ Warm Afternoon Spike Guard")
+        weather_tags.append("☀️ Warm Peak Guard")
         warm_mask = ~scenario_filtered_df["Scent Profile & Notes Breakdown"].str.contains(
             "tonka bean|roasted vanilla|smoked agarwood|sweet almond|incense tears", case=False, na=False
         )
@@ -667,7 +713,7 @@ with tab_briefing:
         
         spray_strategy = scen_meta["sprays"]
         if wx["wind"] >= 10.0 or target_badge == "LO":
-            spray_strategy += f" *[Wind Defense Active: 1 extra mist across jacket collar/lapel to counter {wx['wind']:.1f} mph outdoor wind shear].*"
+            spray_strategy += f" *[Wind Defense: 1 extra mist across jacket collar/lapel to counter {wx['wind']:.1f} mph wind shear].*"
             
         if not is_solo and base_layer and "none" not in base_layer.lower():
             wash_recommendation = f"{base_layer} Body Wash (1:1 Matching Shower Protocol)"
@@ -677,80 +723,90 @@ with tab_briefing:
         sartorial = SARTORIAL_MAP.get(profile_name, DEFAULT_PALETTE)
         badge_style = "badge-solo" if is_solo else "badge-tag"
         
-        col1, col2 = st.columns([1.8, 1.2])
-        
-        with col1:
-            st.markdown(f"""
-            <div class="metric-card">
+        # Primary Recipe Card (Full Mobile Width)
+        st.markdown(f"""
+        <div class="metric-card">
+            <div style="margin-bottom: 6px;">
                 <span class="badge-scenario">🎯 {target_badge} PROTOCOL</span>
                 <span class="{badge_style}">{"🎯 SOLO WEAR" if is_solo else "🧪 LAYERING PICK"}</span>
                 <span class="badge-tag">{pairing_type}</span>
                 <span class="badge-tag">Primer: {primer_compat}</span>
                 {' '.join([f'<span class="badge-weather">{tag}</span>' for tag in weather_tags])}
-                <h2 style="color: #58A6FF; margin-top: 8px; font-weight: 700;">{profile_name}</h2>
-                <p style="font-size: 15.5px; margin-bottom: 6px;">
-                    <strong>{'Selected Fragrance' if is_solo else 'Top Layer'}:</strong> <span style="color: #58A6FF; font-weight: 600;">{top_layer}</span><br>
+            </div>
+            <h2 style="color: #58A6FF; margin-top: 6px; margin-bottom: 10px; font-weight: 700; font-size: 24px;">{profile_name}</h2>
+            <div style="background-color: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+                <p style="font-size: 16px; margin: 0 0 6px 0;">
+                    <strong>{'Selected Fragrance' if is_solo else 'Top Layer'}:</strong> <span style="color: #58A6FF; font-weight: 600;">{top_layer}</span>
+                </p>
+                <p style="font-size: 14.5px; margin: 0; color: #C9D1D9;">
                     <strong>Base Preparation:</strong> {base_layer}
                 </p>
-                <p style="font-style: italic; color: #8B949E; font-size: 13.5px;">"{scent_notes}"</p>
             </div>
-            """, unsafe_allow_html=True)
-            
-            st.subheader("🎯 Application Strategy")
-            st.write(f"- **Target Sillage Cap:** {scen_meta['cap']} *(Evaluated for {target_badge})*")
-            st.write(f"- **Spray Distribution:** {spray_strategy}")
-            st.write(f"- **Shower Prep:** **{wash_recommendation}**")
-            st.write(f"- **Grooming Canvas:** **{canvas_recommendation}**")
-            st.caption(f"*{canvas_reason}*")
-            
-            temp_range = wx["high"] - wx["low"]
-            if temp_range >= 18.0:
-                st.markdown(f"""
-                <div style="background-color: rgba(235, 142, 60, 0.1); border-left: 4px solid #F0883E; padding: 10px 14px; border-radius: 6px; margin-top: 10px; font-size: 13px;">
-                    <strong>Transitional Swing Notice:</strong> {temp_range:.0f}°F delta between Low ({wx['low']:.0f}°F) and High ({wx['high']:.0f}°F). 
-                    The chosen formula opens with sufficient crispness for early chill while resting on an anchor that will not turn cloying once afternoon peak temperatures are reached.
-                </div>
-                """, unsafe_allow_html=True)
+            <p style="font-style: italic; color: #8B949E; font-size: 13.5px; margin-bottom: 0;">"{scent_notes}"</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Touch-Friendly Quick Reroll Button
+        if st.button("🎲 Roll Alternative Option for this Scenario", use_container_width=True):
+            st.rerun()
 
-        with col2:
-            st.subheader("🎨 Sartorial Color Harmony")
+        # Strategic Application & Sartorial Accord Cards
+        st.markdown(f"""
+        <div class="sartorial-card">
+            <h4 style="color: #58A6FF; margin: 0 0 8px 0; font-size: 16px;">🎯 Application Strategy</h4>
+            <div style="font-size: 13.5px; color: #E6EDF3; line-height: 1.5;">
+                • <strong>Target Sillage Cap:</strong> {scen_meta['cap']}<br>
+                • <strong>Spray Distribution:</strong> {spray_strategy}<br>
+                • <strong>Shower Prep:</strong> {wash_recommendation}<br>
+                • <strong>Grooming Canvas:</strong> <strong>{canvas_recommendation}</strong><br>
+                <span style="color: #8B949E; font-size: 12.5px; font-style: italic;">{canvas_reason}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        temp_range = wx["high"] - wx["low"]
+        if temp_range >= 18.0:
             st.markdown(f"""
-            <div class="sartorial-card">
-                <div style="font-weight: 600; font-size: 16px; margin-bottom: 8px;">{sartorial['name']}</div>
-                <p style="margin: 4px 0;"><span class="swatch-box" style="background-color: {sartorial['primary']};"></span> Primary: <code>{sartorial['primary']}</code></p>
-                <p style="margin: 4px 0;"><span class="swatch-box" style="background-color: {sartorial['accent']};"></span> Accent: <code>{sartorial['accent']}</code></p>
-                <div style="margin-top: 10px; font-size: 13px; color: #8B949E;">{sartorial['styling']}</div>
+            <div style="background-color: rgba(235, 142, 60, 0.1); border-left: 4px solid #F0883E; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 13px;">
+                <strong>Transitional Swing Notice:</strong> {temp_range:.0f}°F delta between Low ({wx['low']:.0f}°F) and High ({wx['high']:.0f}°F). 
+                The chosen formula opens with sufficient crispness for early chill while resting on an anchor that will not turn cloying once afternoon peak temperatures are reached.
             </div>
             """, unsafe_allow_html=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.subheader("🔄 Alternate Roll")
-            if st.button("Generate Alternative Option for this Scenario"):
-                st.rerun()
+
+        # Sartorial Harmony Card
+        st.markdown(f"""
+        <div class="sartorial-card">
+            <h4 style="color: #58A6FF; margin: 0 0 8px 0; font-size: 16px;">🎨 Sartorial Color Harmony</h4>
+            <div style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">{sartorial['name']}</div>
+            <div style="display: flex; gap: 16px; margin-bottom: 8px;">
+                <div><span class="swatch-box" style="background-color: {sartorial['primary']};"></span> Primary: <code>{sartorial['primary']}</code></div>
+                <div><span class="swatch-box" style="background-color: {sartorial['accent']};"></span> Accent: <code>{sartorial['accent']}</code></div>
+            </div>
+            <div style="font-size: 13px; color: #8B949E;">{sartorial['styling']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
     else:
         st.warning("No pairing recipes found in the active matrix sheets for this scenario. Please verify your Google Sheet tabs.")
 
 # ---------------------------------------------------------
-# TAB 2: MATRIX EXPLORER & GENERATOR
+# TAB 2: MATRIX EXPLORER & GENERATOR (MOBILE OPTIMIZED)
 # ---------------------------------------------------------
 with tab_explorer:
-    st.header("Fragrance Matrix Query Engine")
-    st.caption("Filter live recipes across all seasonal brackets, scenario badges, pairing types, and chemical primers.")
+    st.header("Matrix Explorer")
+    st.caption("Filter recipes across seasonal brackets, scenario badges, and chemical primers.")
     
-    col_f1, col_f2, col_f3, col_f4 = st.columns(4)
-    
+    col_f1, col_f2 = st.columns(2)
     with col_f1:
         if "Season_Sheet" in matrix_df.columns:
             seasons = ["All Sheets / Bands"] + sorted([s for s in matrix_df["Season_Sheet"].unique() if str(s).strip() != ""])
             chosen_season = st.selectbox("Seasonal Sheet", seasons)
         else:
             chosen_season = "All Sheets / Bands"
-            
-    with col_f2:
         modes = ["All Modes", "Standalone Solo Wear", "Body Cream Layer", "Cologne Mixology"]
         chosen_mode = st.selectbox("Pairing Mode", modes)
         
-    with col_f3:
+    with col_f2:
         scenarios = [
             "All Scenarios", 
             "WP (Work & Professional)", 
@@ -759,9 +815,7 @@ with tab_explorer:
             "NL (Nightlife & Lounges)", 
             "EC (Everyday & Casual)"
         ]
-        chosen_scen = st.selectbox("Target Scenario Badge", scenarios)
-        
-    with col_f4:
+        chosen_scen = st.selectbox("Scenario Badge", scenarios)
         primer_opt = st.selectbox("Particle Primer Compatible", ["Any", "Yes", "No"])
         
     filtered_df = matrix_df.copy()
@@ -778,27 +832,20 @@ with tab_explorer:
     if primer_opt != "Any" and "Particle Primer Compatible" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["Particle Primer Compatible"].astype(str).str.strip().str.lower() == primer_opt.lower()]
 
-    st.markdown("---")
-    gen_col1, gen_col2 = st.columns([2, 1])
-    with gen_col1:
-        st.write(f"**Matching Recipes Found:** {len(filtered_df)}")
-    with gen_col2:
-        if st.button("🎲 Surprise Me (Random Pair from Filter)"):
-            if not filtered_df.empty:
-                pick = filtered_df.sample(1).iloc[0]
-                is_p_solo = (pick.get("Pairing Type") == "Standalone Solo Wear")
-                summary_line = f"{pick.get('Top Layer')} (Solo)" if is_p_solo else f"{pick.get('Base Layer')} + {pick.get('Top Layer')}"
-                st.info(f"**Random Pick:** **{pick.get('Custom Profile Name')}** ({summary_line})\n\n*{pick.get('Scent Profile & Notes Breakdown')}*")
-            else:
-                st.warning("No entries match the current filter.")
-                
+    st.write(f"**Found {len(filtered_df)} Matching Recipes**")
+    if st.button("🎲 Surprise Me (Random Filter Match)", use_container_width=True):
+        if not filtered_df.empty:
+            pick = filtered_df.sample(1).iloc[0]
+            is_p_solo = (pick.get("Pairing Type") == "Standalone Solo Wear")
+            summary_line = f"{pick.get('Top Layer')} (Solo)" if is_p_solo else f"{pick.get('Base Layer')} + {pick.get('Top Layer')}"
+            st.info(f"**Random Pick:** **{pick.get('Custom Profile Name')}** ({summary_line})\n\n*{pick.get('Scent Profile & Notes Breakdown')}*")
+        else:
+            st.warning("No entries match the current filter.")
+            
     display_cols = [c for c in ['Custom Profile Name', 'Pairing Type', 'Base Layer', 'Top Layer', 'Eligible Scenarios', 'Projection Strength', 'Scent Profile & Notes Breakdown'] if c in filtered_df.columns]
     st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True)
     
-    # Boundary Clash Checker
     st.markdown("### ⚠️ Boundary Clash Checker")
-    st.caption("Verify experimental combinations against your operational conflict rules.")
-    
     check_base = st.text_input("Enter Base Layer (Cream or Cologne 1)", placeholder="e.g. Vanilla Noir Cream")
     check_top = st.text_input("Enter Top Layer (Cologne 2)", placeholder="e.g. Versace Man Eau Fraiche")
     
@@ -821,16 +868,14 @@ with tab_explorer:
         if clash:
             st.error(warning_msg)
         else:
-            st.success("✅ Clean Synergy: No active boundary clash detected in operational rules.")
+            st.success("✅ Clean Synergy: No active boundary clash detected.")
 
 # ---------------------------------------------------------
 # TAB 3: STANDALONE DIRECTORY
 # ---------------------------------------------------------
 with tab_directory:
-    st.header("Standalone Fragrance Directory & Notes")
-    st.caption("Search across all standalone colognes, mists, and inspired DNA profiles.")
-    
-    search_query = st.text_input("🔍 Search notes, cologne names, or DNA references", placeholder="e.g. Sage, Ambroxan, YSL Y, Aventus, Vetiver...")
+    st.header("Fragrance Directory")
+    search_query = st.text_input("🔍 Search notes, cologne names, or DNA", placeholder="e.g. Sage, Ambroxan, YSL Y, Aventus, Vetiver...")
     
     if search_query:
         mask = matrix_df.astype(str).apply(lambda row: row.str.contains(search_query, case=False).any(), axis=1)
@@ -839,198 +884,188 @@ with tab_directory:
         disp_cols = [c for c in ['Custom Profile Name', 'Base Layer', 'Top Layer', 'Scent Profile & Notes Breakdown'] if c in search_res.columns]
         st.dataframe(search_res[disp_cols], use_container_width=True, hide_index=True)
     else:
-        st.info("Type a note (e.g. 'bergamot', 'leatherwood', 'pear') or fragrance name above to query matching profiles.")
+        st.info("Type a note or fragrance name above to query matching profiles.")
 
 # ---------------------------------------------------------
-# TAB 4: 🧳 TRIP CAPSULE PLANNER (FIXED LOCATION ENGINE)
+# TAB 4: 🧳 TRIP CAPSULE PLANNER (MOBILE FIRST)
 # ---------------------------------------------------------
 with tab_planner:
-    st.header("🧳 Trip Fragrance Capsule Planner")
-    st.caption("Pack light, project right. Build a lean, high-synergy travel wardrobe of 1–2 universal base creams and 3–4 colognes that cover every scenario of your itinerary.")
+    st.header("🧳 Trip Capsule Planner")
+    st.caption("Pack light, project right. Build a lean 1–2 base cream + 3–4 cologne travel capsule.")
     
-    p_col1, p_col2 = st.columns([1.2, 1.8])
+    st.subheader("1. Trip Parameters")
+    dest_mode = st.radio("Destination Method", ["🏙️ Choose Preset", "🔍 Search Any City / Island"], index=0, horizontal=True)
     
-    with p_col1:
-        st.subheader("1. Trip Parameters")
-        
-        # Location Selection with Presets + Free Search
-        dest_mode = st.radio("Destination Input Method", ["🏙️ Choose Preset", "🔍 Search Any City / Island"], index=0)
-        
-        if dest_mode == "🏙️ Choose Preset":
-            chosen_dest_label = st.selectbox("Select Preset Destination", list(PRESET_CITIES.keys()), index=2 if "St. Thomas" in str(list(PRESET_CITIES.keys())) else 0)
-            target_lat = PRESET_CITIES[chosen_dest_label]["lat"]
-            target_lon = PRESET_CITIES[chosen_dest_label]["lon"]
-            resolved_dest_title = chosen_dest_label
+    if dest_mode == "🏙️ Choose Preset":
+        preset_keys = list(PRESET_CITIES.keys())
+        default_p_idx = 2 if "St. Thomas" in str(preset_keys) else 0
+        chosen_dest_label = st.selectbox("Destination Preset", preset_keys, index=default_p_idx)
+        target_lat = PRESET_CITIES[chosen_dest_label]["lat"]
+        target_lon = PRESET_CITIES[chosen_dest_label]["lon"]
+        resolved_dest_title = chosen_dest_label
+    else:
+        dest_input = st.text_input("Destination City or Island", value="St. Thomas", placeholder="e.g. St. Thomas, Miami, London...")
+        search_matches = search_city_geocoding(dest_input)
+        if search_matches:
+            dest_choice = st.selectbox(
+                "Matching Destination",
+                search_matches,
+                format_func=lambda x: x["label"]
+            )
+            target_lat = dest_choice["lat"]
+            target_lon = dest_choice["lon"]
+            resolved_dest_title = dest_choice["label"]
         else:
-            dest_input = st.text_input("Destination City or Island", value="St. Thomas", placeholder="e.g. St. Thomas, Miami, London...")
-            search_matches = search_city_geocoding(dest_input)
-            if search_matches:
-                dest_choice = st.selectbox(
-                    "Matching Destination Locked",
-                    search_matches,
-                    format_func=lambda x: x["label"]
-                )
-                target_lat = dest_choice["lat"]
-                target_lon = dest_choice["lon"]
-                resolved_dest_title = dest_choice["label"]
-            else:
-                st.warning(f"Could not find coordinates for '{dest_input}'. Using St. Thomas baseline.")
-                target_lat = 18.3419
-                target_lon = -64.9307
-                resolved_dest_title = "St. Thomas, USVI (Default)"
+            st.warning(f"Using St. Thomas baseline.")
+            target_lat = 18.3419
+            target_lon = -64.9307
+            resolved_dest_title = "St. Thomas, USVI (Default)"
+    
+    d_start = datetime.date.today() + datetime.timedelta(days=30)
+    d_end = d_start + datetime.timedelta(days=6)
+    date_range = st.date_input("Travel Dates", value=(d_start, d_end))
+    
+    st.write("**Scenarios to Cover:**")
+    sc_col1, sc_col2 = st.columns(2)
+    with sc_col1:
+        scen_lo = st.checkbox("🌊 Leisure / Beach", value=True)
+        scen_ec = st.checkbox("☕ Casual / Transit", value=True)
+        scen_dn = st.checkbox("🍸 Date Night / Dinner", value=True)
+    with sc_col2:
+        scen_nl = st.checkbox("🪩 Nightlife / Clubs", value=False)
+        scen_wp = st.checkbox("💼 Work / Meetings", value=False)
+    
+    cream_choice = st.radio(
+        "Base Cream Allowance",
+        ["1 Universal Anchor Cream", "2 Dynamic Dual Creams"],
+        index=0,
+        horizontal=True
+    )
+    
+    target_badges = []
+    if scen_lo: target_badges.append("LO")
+    if scen_ec: target_badges.append("EC")
+    if scen_dn: target_badges.append("DN")
+    if scen_nl: target_badges.append("NL")
+    if scen_wp: target_badges.append("WP")
+    if not target_badges:
+        target_badges = ["LO", "EC", "DN"]
         
-        # Date range picker
-        d_start = datetime.date.today() + datetime.timedelta(days=30)
-        d_end = d_start + datetime.timedelta(days=6)
-        date_range = st.date_input("Travel Dates", value=(d_start, d_end))
+    t_wx = get_comprehensive_weather(target_lat, target_lon)
+    t_band = evaluate_thermodynamic_band(t_wx["temp"], t_wx["wind_chill"])
+    
+    st.markdown("---")
+    st.subheader("2. Curated Travel Capsule")
+    
+    st.markdown(f"""
+    <div style="background-color: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13.5px;">
+        📍 <strong>Location:</strong> <span style="color: #58A6FF; font-weight: 600;">{resolved_dest_title}</span><br>
+        🌡️ <strong>Climate:</strong> ~<strong>{t_wx['temp']:.1f}°F</strong> (H: <strong>{t_wx['high']:.0f}°F</strong> / L: <strong>{t_wx['low']:.0f}°F</strong>) • {t_wx['humidity']}% Humid<br>
+        🌴 <strong>Seasonal Bracket:</strong> <span style="color: #39D353; font-weight: 600;">{t_band}</span><br>
+        🎯 <strong>Coverage:</strong> {', '.join(target_badges)}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if "Summer" in t_band or t_wx["temp"] >= 75.0:
+        base_1 = "Freshwater Cream"
+        base_1_desc = "Universal crisp mountain spring water & Italian bergamot canvas. Prevents heavy cream suffocation in Caribbean heat."
+        base_2 = "Ocean Cream" if cream_choice == "2 Dynamic Dual Creams" else None
+        base_2_desc = "Blue cypress and coastal air foundation; builds dedicated saltwater and marine longevity for beach days." if base_2 else ""
+    elif "Winter" in t_band or t_wx["temp"] < 48.0:
+        base_1 = "Mahogany Teakwood Cream"
+        base_1_desc = "Dense dark timber and frosted lavender foundation; binds warm resins against freezing drafts."
+        base_2 = "Whiskey Reserve Cream" if cream_choice == "2 Dynamic Dual Creams" else None
+        base_2_desc = "Boozy single-malt and white oak for intimate evening dining and cigar lounges." if base_2 else ""
+    else:
+        base_1 = "Graphite Cream"
+        base_1_desc = "The #1 Versatility carrier; aromatic sage and leatherwood effortlessly anchor boardroom blues and evening woods."
+        base_2 = "Mahogany Teakwood Cream" if cream_choice == "2 Dynamic Dual Creams" else None
+        base_2_desc = "Rich dark oak and frosted lavender; provides thermal reinforcement for outdoor breezes and night lounges." if base_2 else ""
         
-        # Scenarios to cover
-        st.write("**Scenarios to Cover on Trip:**")
-        scen_lo = st.checkbox("🌊 Leisure & Outdoor (Waterfront, Beach, Resort)", value=True)
-        scen_ec = st.checkbox("☕ Everyday & Casual (Daytime, Exploring, Transit)", value=True)
-        scen_dn = st.checkbox("🍸 Date Night & Dining (Intimate, Evening Out)", value=True)
-        scen_nl = st.checkbox("🪩 Nightlife & Lounges (High Impact, Social Clubs)", value=False)
-        scen_wp = st.checkbox("💼 Work & Professional (Meetings, Leadership)", value=False)
-        
-        # Base Cream Allowance
-        cream_choice = st.radio(
-            "Base Cream Allowance",
-            ["1 Universal Anchor Cream", "2 Dynamic Dual Creams"],
-            index=0
-        )
-        
-        plan_button = st.button("🚀 Re-Calculate Capsule Plan", use_container_width=True)
+    if "Summer" in t_band or t_wx["temp"] >= 75.0:
+        col_1 = {"name": "Creed Virgin Island Water / Alt. Colada", "role": "Tropical Day & Beach (LO / EC)", "notes": "Lime zest, coconut water, white rum, and sugar cane."}
+        col_2 = {"name": "Alt. Reality (LV Imagination DNA)", "role": "Luminous Day Refresher (EC / LO)", "notes": "Black tea, Sicilian citrus, fresh ginger, and ambroxan."}
+        col_3 = {"name": "Alt. Blue Fate (Blue Talisman DNA)", "role": "Sunset Dinner (DN / EC)", "notes": "Juicy pear, fresh ginger, orange blossom, and Akigalawood."}
+        col_4 = {"name": "GA Acqua Di Gio Profondo", "role": "Marine Shield (LO / EC)", "notes": "Deep mineral marine accords, green mandarin, and blue cypress."} if ("LO" in target_badges or len(target_badges) >= 3) else None
+    elif "Winter" in t_band or t_wx["temp"] < 48.0:
+        col_1 = {"name": "Givenchy Gentleman Society", "role": "Boardroom King (WP / DN)", "notes": "Cardamom, French clary sage, vetiver trio, and dark vanilla."}
+        col_2 = {"name": "Alt. Pristine (Aventus x BR540)", "role": "Daytime Aristocrat (WP / EC)", "notes": "Pineapple, smoky birch, burnt sugar saffron, and amberwood."}
+        col_3 = {"name": "D&G The One for Men", "role": "Date Night (DN)", "notes": "Warm cardamom, fresh ginger, cured tobacco, and cozy amber."}
+        col_4 = {"name": "HOK Nomade Ember", "role": "Nightlife Weapon (NL / DN)", "notes": "Smoked agarwood, incense tears, sweet raspberry, and raw leather."} if "NL" in target_badges else None
+    else:
+        col_1 = {"name": "Givenchy Gentleman Society", "role": "Boardroom Anchor (WP / DN)", "notes": "Cardamom, French sage, vetiver, and dark vanilla."}
+        col_2 = {"name": "Alt. Identity (YSL MYSLF DNA)", "role": "Contemporary Daily (WP / EC)", "notes": "Calabrian bergamot, orange blossom, and Ambrofix."}
+        col_3 = {"name": "Alt. Blue Fate (Blue Talisman DNA)", "role": "Social Bridge (DN / EC / LO)", "notes": "Juicy pear, fresh ginger, ambroxan, and Akigalawood."}
+        if "NL" in target_badges:
+            col_4 = {"name": "Alt. Farouche Elixir (Sauvage Elixir DNA)", "role": "Nightlife (NL)", "notes": "Sichuan pepper, nutmeg, cinnamon, and rich lavender."}
+        elif "LO" in target_badges:
+            col_4 = {"name": "Alt. Reality (LV Imagination DNA)", "role": "Waterfront / Patio (LO / EC)", "notes": "Sparkling black tea, ginger, and ambroxan."}
+        else:
+            col_4 = {"name": "Gucci Guilty Pour Homme", "role": "Refined Barbershop (WP / EC / DN)", "notes": "French lavender, Italian lemon, and cedarwood."}
 
-    with p_col2:
-        st.subheader("2. Curated Travel Capsule")
-        
-        # Collect target scenario codes
-        target_badges = []
-        if scen_lo: target_badges.append("LO")
-        if scen_ec: target_badges.append("EC")
-        if scen_dn: target_badges.append("DN")
-        if scen_nl: target_badges.append("NL")
-        if scen_wp: target_badges.append("WP")
-        if not target_badges:
-            target_badges = ["LO", "EC", "DN"]
-            
-        t_wx = get_comprehensive_weather(target_lat, target_lon)
-        t_band = evaluate_thermodynamic_band(t_wx["temp"], t_wx["wind_chill"])
-        
+    st.markdown(f"""
+    <div class="capsule-card">
+        <span class="badge-tag">FOUNDATION ANCHOR</span>
+        <h3 style="color: #58A6FF; margin: 4px 0; font-size: 18px;">{base_1}</h3>
+        <p style="margin: 0; font-size: 13px; color: #8B949E;">{base_1_desc}</p>
+        {f'<hr style="border-color: #30363D; margin: 8px 0;"><h4 style="color: #BC8CFF; margin: 4px 0; font-size: 16px;">{base_2}</h4><p style="margin: 0; font-size: 13px; color: #8B949E;">{base_2_desc}</p>' if base_2 else ''}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    colognes_list = [c for c in [col_1, col_2, col_3, col_4] if c is not None]
+    st.write(f"**Selected {len(colognes_list)}-Bottle Travel Roster:**")
+    
+    for i, c in enumerate(colognes_list, 1):
         st.markdown(f"""
-        <div style="background-color: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 14px; margin-bottom: 14px; font-size: 13.5px;">
-            📍 <strong>Target Location Locked:</strong> <span style="color: #58A6FF; font-weight: 600;">{resolved_dest_title}</span><br>
-            🌡️ <strong>Active Climate Telemetry:</strong> ~<strong>{t_wx['temp']:.1f}°F</strong> (High: <strong>{t_wx['high']:.0f}°F</strong> / Low: <strong>{t_wx['low']:.0f}°F</strong>) • Wind: {t_wx['wind']:.1f} mph • Humidity: {t_wx['humidity']}%<br>
-            🌴 <strong>Seasonal Bracket:</strong> <span style="color: #39D353; font-weight: 600;">{t_band}</span><br>
-            🎯 <strong>Required Scenario Coverage:</strong> {', '.join(target_badges)}
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Determine Universal Anchor Cream(s)
-        if "Summer" in t_band or t_wx["temp"] >= 75.0:
-            base_1 = "Freshwater Cream"
-            base_1_desc = "Universal crisp mountain spring water & Italian bergamot canvas. Prevents heavy cream suffocation in Caribbean heat and humidity while carrying aquatic and citrus accords."
-            base_2 = "Ocean Cream" if cream_choice == "2 Dynamic Dual Creams" else None
-            base_2_desc = "Blue cypress and coastal air foundation; builds dedicated saltwater and marine longevity for beach days." if base_2 else ""
-        elif "Winter" in t_band or t_wx["temp"] < 48.0:
-            base_1 = "Mahogany Teakwood Cream"
-            base_1_desc = "Dense dark timber and frosted lavender foundation; binds warm resins against freezing drafts."
-            base_2 = "Whiskey Reserve Cream" if cream_choice == "2 Dynamic Dual Creams" else None
-            base_2_desc = "Boozy single-malt and white oak for intimate evening dining and cigar lounges." if base_2 else ""
-        else: # Transitional Seasons (Spring, Fall)
-            base_1 = "Graphite Cream"
-            base_1_desc = "The #1 Versatility carrier; aromatic sage and leatherwood effortlessly anchor boardroom blues, barbershops, and evening woods."
-            base_2 = "Mahogany Teakwood Cream" if cream_choice == "2 Dynamic Dual Creams" else None
-            base_2_desc = "Rich dark oak and frosted lavender; provides thermal reinforcement for outdoor breezes and night lounges." if base_2 else ""
-            
-        # Select 3-4 Colognes
-        if "Summer" in t_band or t_wx["temp"] >= 75.0:
-            col_1 = {"name": "Creed Virgin Island Water / Alt. Colada", "role": "Tropical Day & Beach Sovereign (LO / EC)", "notes": "Jamaican lime zest, coconut water, white rum, and sugar cane. High-heat resort benchmark."}
-            col_2 = {"name": "Alt. Reality (LV Imagination DNA)", "role": "Luminous Daytime Refresher (EC / LO)", "notes": "Chinese black tea, Sicilian citrus, fresh ginger, and sparkling ambroxan. Spa-like luxury refinement."}
-            col_3 = {"name": "Alt. Blue Fate (Blue Talisman DNA)", "role": "Evening Dinner & Sunset Social (DN / EC)", "notes": "Juicy pear, fresh ginger, orange blossom, and radiating Akigalawood. Magnetic evening trail."}
-            col_4 = {"name": "GA Acqua Di Gio Profondo", "role": "Deep Marine Water & Wind Shield (LO / EC)", "notes": "Deep mineral marine accords, green mandarin, and blue cypress. Sweat and salt-air defense."} if ("LO" in target_badges or len(target_badges) >= 3) else None
-        elif "Winter" in t_band or t_wx["temp"] < 48.0:
-            col_1 = {"name": "Givenchy Gentleman Society", "role": "Universal Boardroom King (WP / DN)", "notes": "Cardamom, French clary sage, vetiver trio, and dark vanilla."}
-            col_2 = {"name": "Alt. Pristine (Aventus x BR540)", "role": "Daytime Luminous Aristocrat (WP / EC)", "notes": "Crisp pineapple, smoky birch, burnt sugar saffron, and amberwood."}
-            col_3 = {"name": "D&G The One for Men", "role": "Intimate Date Night & Dinner (DN)", "notes": "Warm cardamom, fresh ginger, cured tobacco, and cozy amber."}
-            col_4 = {"name": "HOK Nomade Ember", "role": "Sub-Freezing Nightlife Weapon (NL / DN)", "notes": "Smoked agarwood, incense tears, sweet raspberry, and raw leather."} if "NL" in target_badges else None
-        else: # Transitional Seasons
-            col_1 = {"name": "Givenchy Gentleman Society", "role": "The Boardroom Anchor (WP / DN)", "notes": "Cardamom, French sage, vetiver, and dark vanilla; effortless authority."}
-            col_2 = {"name": "Alt. Identity (YSL MYSLF DNA)", "role": "Modern Contemporary Daily (WP / EC)", "notes": "Calabrian bergamot, orange blossom, and clean Ambrofix."}
-            col_3 = {"name": "Alt. Blue Fate (Blue Talisman DNA)", "role": "The Magnetic Social Bridge (DN / EC / LO)", "notes": "Juicy pear, fresh ginger, ambroxan, and Akigalawood."}
-            if "NL" in target_badges:
-                col_4 = {"name": "Alt. Farouche Elixir (Sauvage Elixir DNA)", "role": "Nightlife & Beast Mode (NL)", "notes": "Fiery Sichuan pepper, nutmeg, cinnamon, and rich lavender."}
-            elif "LO" in target_badges:
-                col_4 = {"name": "Alt. Reality (LV Imagination DNA)", "role": "Open-Air Waterfront / Patio (LO / EC)", "notes": "Sparkling black tea, ginger, and ambroxan."}
-            else:
-                col_4 = {"name": "Gucci Guilty Pour Homme", "role": "Refined Barbershop Backup (WP / EC / DN)", "notes": "French lavender, Italian lemon, and cedarwood."}
-
-        # Render Base Anchor Box
-        st.markdown(f"""
-        <div class="capsule-card">
-            <span class="badge-tag">FOUNDATION ANCHOR</span>
-            <h3 style="color: #58A6FF; margin: 4px 0;">{base_1}</h3>
-            <p style="margin: 0; font-size: 13.5px; color: #8B949E;">{base_1_desc}</p>
-            {f'<hr style="border-color: #30363D; margin: 8px 0;"><h4 style="color: #BC8CFF; margin: 4px 0;">{base_2}</h4><p style="margin: 0; font-size: 13.5px; color: #8B949E;">{base_2_desc}</p>' if base_2 else ''}
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Render 3-4 Colognes
-        colognes_list = [c for c in [col_1, col_2, col_3, col_4] if c is not None]
-        st.write(f"**Selected {len(colognes_list)}-Bottle Travel Roster:**")
-        
-        for i, c in enumerate(colognes_list, 1):
-            st.markdown(f"""
-            <div style="background-color: #161B22; border-left: 4px solid #58A6FF; border-top: 1px solid #30363D; border-right: 1px solid #30363D; border-bottom: 1px solid #30363D; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px;">
-                <div style="font-size: 14.5px; font-weight: 600; color: #E6EDF3;">
-                    Bottle #{i}: <span style="color: #58A6FF;">{c['name']}</span> 
-                    <span style="font-size: 11px; color: #8B949E; margin-left: 8px;">({c['role']})</span>
-                </div>
-                <div style="font-size: 12.5px; color: #8B949E; margin-top: 2px;">{c['notes']}</div>
+        <div style="background-color: #161B22; border-left: 4px solid #58A6FF; border-top: 1px solid #30363D; border-right: 1px solid #30363D; border-bottom: 1px solid #30363D; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px;">
+            <div style="font-size: 14.5px; font-weight: 600; color: #E6EDF3;">
+                Bottle #{i}: <span style="color: #58A6FF;">{c['name']}</span> 
             </div>
-            """, unsafe_allow_html=True)
-            
-        # Deployment Matrix on Trip
-        st.markdown("---")
-        st.subheader("3. Trip Scenario Deployment Playbook")
+            <div style="font-size: 12px; color: #BC8CFF; margin-top: 1px;">{c['role']}</div>
+            <div style="font-size: 12.5px; color: #8B949E; margin-top: 3px;">{c['notes']}</div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        playbook_data = []
-        for badge in target_badges:
-            if badge == "LO":
-                playbook_data.append({
-                    "Scenario": "🌊 Waterfront, Beach & Resort",
-                    "Deployment Recipe": f"{base_1} + {col_1['name']}",
-                    "Sillage Cap": "Moderate to Strong (4–5 ft)",
-                    "Strategic Rationale": "Zesty lime, coconut, and spring water radiate effortlessly under tropical sunshine without cloying."
-                })
-            elif badge == "EC":
-                playbook_data.append({
-                    "Scenario": "☕ Casual Daytime & Excursions",
-                    "Deployment Recipe": f"Unscented Canvas + {col_2['name']} (Solo)",
-                    "Sillage Cap": "2–3 ft (Clean Bubble)",
-                    "Strategic Rationale": "Crisp sparkling tea and ginger; perfectly refreshing for warm daytime walking and transit."
-                })
-            elif badge == "DN":
-                playbook_data.append({
-                    "Scenario": "🍸 Sunset Dinner & Date Night",
-                    "Deployment Recipe": f"{base_1} + {col_3['name']}",
-                    "Sillage Cap": "3–4 ft (Magnetic)",
-                    "Strategic Rationale": "Radiant pear, orange blossom, and Akigalawood project an alluring evening presence across open-air patios."
-                })
-            elif badge == "NL" and col_4:
-                playbook_data.append({
-                    "Scenario": "🪩 Nightlife & Lounges",
-                    "Deployment Recipe": f"{base_2 if base_2 else base_1} + {col_4['name']}",
-                    "Sillage Cap": "6–8 ft (Beast Mode)",
-                    "Strategic Rationale": "Deep marine minerals or bold spices cutting through crowded late-night venues."
-                })
-            elif badge == "WP":
-                playbook_data.append({
-                    "Scenario": "💼 Meetings & Formal Context",
-                    "Deployment Recipe": f"{base_1} + {col_2['name']}",
-                    "Sillage Cap": "3–4 ft (Office Safe)",
-                    "Strategic Rationale": "Controlled tea and ambroxan maintaining sharp executive composure in air-conditioned spaces."
-                })
-                
-        if playbook_data:
-            st.table(pd.DataFrame(playbook_data))
+    st.markdown("---")
+    st.subheader("3. Trip Deployment Playbook")
+    
+    playbook_data = []
+    for badge in target_badges:
+        if badge == "LO":
+            playbook_data.append({
+                "Scenario": "🌊 Waterfront & Beach",
+                "Deployment": f"{base_1} + {col_1['name']}",
+                "Cap": "4–5 ft",
+                "Rationale": "Zesty lime, coconut, and spring water radiate effortlessly under tropical sun."
+            })
+        elif badge == "EC":
+            playbook_data.append({
+                "Scenario": "☕ Daytime & Transit",
+                "Deployment": f"Canvas + {col_2['name']} (Solo)",
+                "Cap": "2–3 ft",
+                "Rationale": "Crisp sparkling tea and ginger; perfectly refreshing for warm daytime walking."
+            })
+        elif badge == "DN":
+            playbook_data.append({
+                "Scenario": "🍸 Dinner & Sunset",
+                "Deployment": f"{base_1} + {col_3['name']}",
+                "Cap": "3–4 ft",
+                "Rationale": "Radiant pear and Akigalawood project an alluring evening presence on open patios."
+            })
+        elif badge == "NL" and col_4:
+            playbook_data.append({
+                "Scenario": "🪩 Nightlife & Clubs",
+                "Deployment": f"{base_2 if base_2 else base_1} + {col_4['name']}",
+                "Cap": "6–8 ft",
+                "Rationale": "Deep marine minerals or bold spices cutting through crowded late-night venues."
+            })
+        elif badge == "WP":
+            playbook_data.append({
+                "Scenario": "💼 Meetings",
+                "Deployment": f"{base_1} + {col_2['name']}",
+                "Cap": "3–4 ft",
+                "Rationale": "Controlled tea and ambroxan maintaining sharp executive composure indoors."
+            })
+            
+    if playbook_data:
+        st.dataframe(pd.DataFrame(playbook_data), use_container_width=True, hide_index=True)
