@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 import datetime
 import random
+import re
 import gspread
 from google.oauth2.service_account import Credentials
 
@@ -221,7 +222,8 @@ def get_fallback_dataframe():
         {"Season_Sheet": "Early Fall (Transitional 58°F – 72°F)", "Pairing Type": "Body Cream Layer", "Base Layer": "Mahogany Teakwood", "Particle Primer Compatible": "Yes", "Top Layer": "GA Acqua Di Gio Profondo", "Custom Profile Name": "The Oceanic Executive", "Eligible Scenarios": "WP, EC, LO", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Crisp mineral deep sea notes cut through rich timbers and frosted lavender. Waterfront & open air ready."},
         {"Season_Sheet": "Crisp Fall (45°F – 60°F)", "Pairing Type": "Body Cream Layer", "Base Layer": "Whiskey Reserve", "Particle Primer Compatible": "Yes", "Top Layer": "John Wick x Scentbird", "Custom Profile Name": "The Premium Lounge", "Eligible Scenarios": "DN, WP, NL, LO", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Amber bourbon and cedarwood lock directly onto whiskey and oak. Warm stadium & chilly evening benchmark."},
         {"Season_Sheet": "Spring (Warming 55°F – 70°F)", "Pairing Type": "Cologne Mixology", "Base Layer": "Alt. Splish (D&G Light Blue)", "Particle Primer Compatible": "Yes", "Top Layer": "Alt. Reality (LV Imagination)", "Custom Profile Name": "The Sicilian Citrus Tea", "Eligible Scenarios": "EC, WP, LO", "Projection Strength": "Moderate (3–4 ft)", "Scent Profile & Notes Breakdown": "Mandarin and grapefruit peel blend into black tea, ginger, and ambroxan."},
-        {"Season_Sheet": "High Summer (75°F – 95°F+)", "Pairing Type": "Body Cream Layer", "Base Layer": "Ocean Cream", "Particle Primer Compatible": "Yes", "Top Layer": "Alt. Blue Fate (Blue Talisman)", "Custom Profile Name": "The Luminous Azure Sea", "Eligible Scenarios": "EC, WP, LO", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Juicy pear and Akigalawood float over coastal air and blue cypress."}
+        {"Season_Sheet": "High Summer (75°F – 95°F+)", "Pairing Type": "Body Cream Layer", "Base Layer": "Ocean Cream", "Particle Primer Compatible": "Yes", "Top Layer": "Alt. Blue Fate (Blue Talisman)", "Custom Profile Name": "The Luminous Azure Sea", "Eligible Scenarios": "EC, WP, LO", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Juicy pear and Akigalawood float over coastal air and blue cypress."},
+        {"Season_Sheet": "High Summer (75°F – 95°F+)", "Pairing Type": "Body Cream Layer", "Base Layer": "Freshwater Cream", "Particle Primer Compatible": "Yes", "Top Layer": "Creed Virgin Island Water", "Custom Profile Name": "The Caribbean Mountain Stream", "Eligible Scenarios": "LO, EC", "Projection Strength": "Moderate (3–4 ft)", "Scent Profile & Notes Breakdown": "Lime zest, coconut water, and white rum gliding over mountain spring water and crisp bergamot."}
     ]
     return pd.DataFrame(data)
 
@@ -231,13 +233,13 @@ def get_fallback_dataframe():
 PRESET_CITIES = {
     "Washington, D.C.": {"lat": 38.9072, "lon": -77.0369},
     "National Harbor, MD": {"lat": 38.7848, "lon": -77.0169},
+    "St. Thomas, USVI": {"lat": 18.3419, "lon": -64.9307},
     "New York, NY": {"lat": 40.7128, "lon": -74.0060},
     "Miami, FL": {"lat": 25.7617, "lon": -80.1918},
-    "Orlando, FL": {"lat": 28.5383, "lon": -81.3792},
+    "Orlando, FL": {"lat": 28.5383, "lon": -81.3792}
     "Atlanta, GA": {"lat": 33.7490, "lon": -84.3880},
     "Chicago, IL": {"lat": 41.8781, "lon": -87.6298},
-    "Los Angeles, CA": {"lat": 34.0522, "lon": -118.2437},
-    "St. Thomas, VI": {"lat": 18.3354, "lon": -64.9534}
+    "Los Angeles, CA": {"lat": 34.0522, "lon": -118.2437}
 }
 
 @st.cache_data(ttl=900)
@@ -284,31 +286,72 @@ def get_comprehensive_weather(lat, lon):
 
 @st.cache_data(ttl=3600)
 def search_city_geocoding(query):
+    """
+    Robust city geocoder:
+    1. Checks PRESET_CITIES for direct substring or alias matches (e.g. St. Thomas -> St. Thomas, USVI).
+    2. Handles abbreviations ('St.' -> 'Saint').
+    3. Queries Open-Meteo Geocoding API with fallbacks.
+    """
     if not query or len(query.strip()) < 2:
         return []
-    url = f"https://geocoding-api.open-meteo.com/v1/search?name={query.strip()}&count=6&language=en&format=json"
-    try:
-        r = requests.get(url, timeout=5).json()
-        results = r.get("results", [])
-        formatted = []
-        for res in results:
-            name = res.get("name", "Unknown")
-            admin = res.get("admin1", "")
-            country = res.get("country", "")
-            label_parts = [name]
-            if admin and admin != name:
-                label_parts.append(admin)
-            if country:
-                label_parts.append(country)
-            label = ", ".join(label_parts)
-            formatted.append({
-                "label": label,
-                "lat": float(res.get("latitude")),
-                "lon": float(res.get("longitude"))
+    
+    q_clean = query.strip()
+    q_low = q_clean.lower()
+    
+    # 1. Direct check against PRESET_CITIES
+    preset_matches = []
+    for p_name, p_coords in PRESET_CITIES.items():
+        p_low = p_name.lower()
+        if q_low in p_low or p_low in q_low or ("thomas" in q_low and "thomas" in p_low):
+            preset_matches.append({
+                "label": f"{p_name} (Preset)",
+                "lat": float(p_coords["lat"]),
+                "lon": float(p_coords["lon"])
             })
-        return formatted
-    except Exception:
-        return []
+    if preset_matches:
+        return preset_matches
+        
+    # 2. Query Open-Meteo Geocoding with name variants
+    queries_to_try = [q_clean]
+    if "st." in q_low:
+        queries_to_try.append(re.sub(r'\bst\.\b', 'Saint', q_clean, flags=re.IGNORECASE))
+    elif "st " in q_low:
+        queries_to_try.append(re.sub(r'\bst\b', 'Saint', q_clean, flags=re.IGNORECASE))
+        
+    for try_q in queries_to_try:
+        url = f"https://geocoding-api.open-meteo.com/v1/search?name={requests.utils.quote(try_q)}&count=6&language=en&format=json"
+        try:
+            r = requests.get(url, timeout=5).json()
+            results = r.get("results", [])
+            if results:
+                formatted = []
+                for res in results:
+                    name = res.get("name", "Unknown")
+                    admin = res.get("admin1", "")
+                    country = res.get("country", "")
+                    label_parts = [name]
+                    if admin and admin != name:
+                        label_parts.append(admin)
+                    if country:
+                        label_parts.append(country)
+                    label = ", ".join(label_parts)
+                    formatted.append({
+                        "label": label,
+                        "lat": float(res.get("latitude")),
+                        "lon": float(res.get("longitude"))
+                    })
+                return formatted
+        except Exception:
+            continue
+            
+    # Known Island/Territory Fallbacks
+    if "thomas" in q_low or "virgin" in q_low or "usvi" in q_low:
+        return [{
+            "label": "St. Thomas, U.S. Virgin Islands",
+            "lat": 18.3419,
+            "lon": -64.9307
+        }]
+    return []
 
 @st.cache_data(ttl=3600)
 def reverse_geocode_coords(lat, lon):
@@ -354,6 +397,7 @@ SARTORIAL_MAP = {
     "The Golden Gourmand Sovereign": {"name": "Dark Espresso & Warm Honey Tan", "primary": "#281D17", "accent": "#C48D47", "styling": "Sweet almond and benzoin resting on dark roasted espresso."},
     "The Intimate Tobacco Seduction": {"name": "Espresso & Spiced Cognac", "primary": "#2A1D15", "accent": "#9E5A2A", "styling": "Cozy tobacco and ginger over rich brown knitwear for close dining."},
     "The Authentic Caribbean King": {"name": "Palm Green & Coconut Shell Tan", "primary": "#324A38", "accent": "#9C7A58", "styling": "Lime zest, sugar cane, and white rum in island earth tones."},
+    "The Caribbean Mountain Stream": {"name": "Island Palm & Frosted White", "primary": "#234D34", "accent": "#FFFFFF", "styling": "Resort linen shirt with white or natural stone trousers."},
     "The Desert Oud Monarch": {"name": "Midnight Black & Desert Crimson", "primary": "#1A1A1A", "accent": "#801B2B", "styling": "Smoky oud and sweet raspberry over sleek nocturnal darks."},
     "The Sovereign Agarwood Suite": {"name": "Smoked Charcoal & Rosewood Bronze", "primary": "#2B2D33", "accent": "#8C4F47", "styling": "Agarwood, rosewood, and cardamom in a sovereign corporate or gala cut."},
     "The Tactical Ambroxan Alpha": {"name": "Tactical Gunmetal & Electric Bergamot Blue", "primary": "#2A2C2E", "accent": "#3A6B88", "styling": "Fiery Sichuan pepper and ambroxan over dark technical gear."},
@@ -415,7 +459,7 @@ with st.sidebar:
             active_location_label = "Washington, D.C. (Default)"
             
     elif loc_mode == "🔍 Search Any City":
-        search_input = st.text_input("Enter City, State or Country", placeholder="e.g. Philadelphia, Austin, Paris, London...")
+        search_input = st.text_input("Enter City, State or Country", placeholder="e.g. Philadelphia, St. Thomas, Paris...")
         if search_input:
             search_matches = search_city_geocoding(search_input)
             if search_matches:
@@ -798,7 +842,7 @@ with tab_directory:
         st.info("Type a note (e.g. 'bergamot', 'leatherwood', 'pear') or fragrance name above to query matching profiles.")
 
 # ---------------------------------------------------------
-# TAB 4: 🧳 TRIP CAPSULE PLANNER
+# TAB 4: 🧳 TRIP CAPSULE PLANNER (FIXED LOCATION ENGINE)
 # ---------------------------------------------------------
 with tab_planner:
     st.header("🧳 Trip Fragrance Capsule Planner")
@@ -808,20 +852,45 @@ with tab_planner:
     
     with p_col1:
         st.subheader("1. Trip Parameters")
-        dest_input = st.text_input("Destination(s)", value="Atlanta, GA", placeholder="e.g. Atlanta, GA / Miami / London")
+        
+        # Location Selection with Presets + Free Search
+        dest_mode = st.radio("Destination Input Method", ["🏙️ Choose Preset", "🔍 Search Any City / Island"], index=0)
+        
+        if dest_mode == "🏙️ Choose Preset":
+            chosen_dest_label = st.selectbox("Select Preset Destination", list(PRESET_CITIES.keys()), index=2 if "St. Thomas" in str(list(PRESET_CITIES.keys())) else 0)
+            target_lat = PRESET_CITIES[chosen_dest_label]["lat"]
+            target_lon = PRESET_CITIES[chosen_dest_label]["lon"]
+            resolved_dest_title = chosen_dest_label
+        else:
+            dest_input = st.text_input("Destination City or Island", value="St. Thomas", placeholder="e.g. St. Thomas, Miami, London...")
+            search_matches = search_city_geocoding(dest_input)
+            if search_matches:
+                dest_choice = st.selectbox(
+                    "Matching Destination Locked",
+                    search_matches,
+                    format_func=lambda x: x["label"]
+                )
+                target_lat = dest_choice["lat"]
+                target_lon = dest_choice["lon"]
+                resolved_dest_title = dest_choice["label"]
+            else:
+                st.warning(f"Could not find coordinates for '{dest_input}'. Using St. Thomas baseline.")
+                target_lat = 18.3419
+                target_lon = -64.9307
+                resolved_dest_title = "St. Thomas, USVI (Default)"
         
         # Date range picker
-        d_start = datetime.date.today() + datetime.timedelta(days=7)
-        d_end = d_start + datetime.timedelta(days=4)
+        d_start = datetime.date.today() + datetime.timedelta(days=30)
+        d_end = d_start + datetime.timedelta(days=6)
         date_range = st.date_input("Travel Dates", value=(d_start, d_end))
         
         # Scenarios to cover
         st.write("**Scenarios to Cover on Trip:**")
-        scen_wp = st.checkbox("💼 Work & Professional (Meetings, Leadership)", value=True)
+        scen_lo = st.checkbox("🌊 Leisure & Outdoor (Waterfront, Beach, Resort)", value=True)
         scen_ec = st.checkbox("☕ Everyday & Casual (Daytime, Exploring, Transit)", value=True)
         scen_dn = st.checkbox("🍸 Date Night & Dining (Intimate, Evening Out)", value=True)
-        scen_nl = st.checkbox("🪩 Nightlife & Lounges (High Impact, Club)", value=False)
-        scen_lo = st.checkbox("🌊 Leisure & Outdoor (Waterfront, Patios, Stadium)", value=False)
+        scen_nl = st.checkbox("🪩 Nightlife & Lounges (High Impact, Social Clubs)", value=False)
+        scen_wp = st.checkbox("💼 Work & Professional (Meetings, Leadership)", value=False)
         
         # Base Cream Allowance
         cream_choice = st.radio(
@@ -830,77 +899,62 @@ with tab_planner:
             index=0
         )
         
-        plan_button = st.button("🚀 Generate Travel Capsule Plan", use_container_width=True)
+        plan_button = st.button("🚀 Re-Calculate Capsule Plan", use_container_width=True)
 
     with p_col2:
         st.subheader("2. Curated Travel Capsule")
         
         # Collect target scenario codes
         target_badges = []
-        if scen_wp: target_badges.append("WP")
+        if scen_lo: target_badges.append("LO")
         if scen_ec: target_badges.append("EC")
         if scen_dn: target_badges.append("DN")
         if scen_nl: target_badges.append("NL")
-        if scen_lo: target_badges.append("LO")
+        if scen_wp: target_badges.append("WP")
         if not target_badges:
-            target_badges = ["WP", "EC", "DN"]
+            target_badges = ["LO", "EC", "DN"]
             
-        # Destination geocode & climate estimation
-        trip_city_matches = search_city_geocoding(dest_input.split("/")[0].strip())
-        if trip_city_matches:
-            c_lat, c_lon = trip_city_matches[0]["lat"], trip_city_matches[0]["lon"]
-            city_label = trip_city_matches[0]["label"]
-        else:
-            c_lat, c_lon = 33.7490, -84.3880
-            city_label = dest_input
-            
-        t_wx = get_comprehensive_weather(c_lat, c_lon)
+        t_wx = get_comprehensive_weather(target_lat, target_lon)
         t_band = evaluate_thermodynamic_band(t_wx["temp"], t_wx["wind_chill"])
         
         st.markdown(f"""
-        <div style="background-color: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13.5px;">
-            📍 <strong>Target Location:</strong> {city_label}<br>
-            🌡️ <strong>Estimated Climate:</strong> ~{t_wx['temp']:.0f}°F (High {t_wx['high']:.0f}°F / Low {t_wx['low']:.0f}°F) • <strong>Band:</strong> {t_band}<br>
-            🎯 <strong>Required Coverage:</strong> {', '.join(target_badges)}
+        <div style="background-color: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 14px; margin-bottom: 14px; font-size: 13.5px;">
+            📍 <strong>Target Location Locked:</strong> <span style="color: #58A6FF; font-weight: 600;">{resolved_dest_title}</span><br>
+            🌡️ <strong>Active Climate Telemetry:</strong> ~<strong>{t_wx['temp']:.1f}°F</strong> (High: <strong>{t_wx['high']:.0f}°F</strong> / Low: <strong>{t_wx['low']:.0f}°F</strong>) • Wind: {t_wx['wind']:.1f} mph • Humidity: {t_wx['humidity']}%<br>
+            🌴 <strong>Seasonal Bracket:</strong> <span style="color: #39D353; font-weight: 600;">{t_band}</span><br>
+            🎯 <strong>Required Scenario Coverage:</strong> {', '.join(target_badges)}
         </div>
         """, unsafe_allow_html=True)
         
-        # Algorithm: Determine Anchor Cream(s)
-        # Warm / High Heat: Freshwater Cream (or Ocean)
-        # Transitional / All-Season: Graphite Cream (Sage, Bergamot, Leatherwood)
-        # Cold / Evening heavy: Mahogany Teakwood Cream (Dark oak, timbers)
-        if "Summer" in t_band:
+        # Determine Universal Anchor Cream(s)
+        if "Summer" in t_band or t_wx["temp"] >= 75.0:
             base_1 = "Freshwater Cream"
-            base_1_desc = "Universal crisp mountain spring water canvas; prevents heavy cream suffocation in high humidity."
-            base_2 = "Graphite Cream" if cream_choice == "2 Dynamic Dual Creams" else None
-            base_2_desc = "Grounded aromatic sage and leatherwood for air-conditioned meetings and evening dinners." if base_2 else ""
-        elif "Winter" in t_band:
+            base_1_desc = "Universal crisp mountain spring water & Italian bergamot canvas. Prevents heavy cream suffocation in Caribbean heat and humidity while carrying aquatic and citrus accords."
+            base_2 = "Ocean Cream" if cream_choice == "2 Dynamic Dual Creams" else None
+            base_2_desc = "Blue cypress and coastal air foundation; builds dedicated saltwater and marine longevity for beach days." if base_2 else ""
+        elif "Winter" in t_band or t_wx["temp"] < 48.0:
             base_1 = "Mahogany Teakwood Cream"
-            base_1_desc = "Dense dark timber and frosted lavender foundation; binds warm resins against sub-freezing drafts."
+            base_1_desc = "Dense dark timber and frosted lavender foundation; binds warm resins against freezing drafts."
             base_2 = "Whiskey Reserve Cream" if cream_choice == "2 Dynamic Dual Creams" else None
             base_2_desc = "Boozy single-malt and white oak for intimate evening dining and cigar lounges." if base_2 else ""
-        else: # Early Fall, Fall, Spring, Pre-Spring
+        else: # Transitional Seasons (Spring, Fall)
             base_1 = "Graphite Cream"
             base_1_desc = "The #1 Versatility carrier; aromatic sage and leatherwood effortlessly anchor boardroom blues, barbershops, and evening woods."
             base_2 = "Mahogany Teakwood Cream" if cream_choice == "2 Dynamic Dual Creams" else None
             base_2_desc = "Rich dark oak and frosted lavender; provides thermal reinforcement for outdoor breezes and night lounges." if base_2 else ""
             
-        # Algorithm: Select 3-4 Colognes
-        # Slot 1: The Daytime Executive Workhorse (WP / EC)
-        # Slot 2: The Luminous Chameleon / Social Bridge (WP / EC / DN / LO)
-        # Slot 3: The Intimate Evening & Dining Anchor (DN)
-        # Slot 4: The Wildcard / Beast Mode or Outdoor Shield (NL or LO)
-        if "Summer" in t_band:
-            col_1 = {"name": "Alt. A (YSL Y DNA)", "role": "Daytime Workhorse (WP / EC)", "notes": "Green apple, ginger, and sage. Clean, sharp daily driver."}
-            col_2 = {"name": "Alt. Reality (LV Imagination DNA)", "role": "Luminous Social Refresher (EC / LO)", "notes": "Chinese black tea, Sicilian citrus, and sparkling ambroxan."}
-            col_3 = {"name": "Alt. Blue Fate (Blue Talisman DNA)", "role": "Evening Dinner / Social (DN / EC)", "notes": "Juicy pear, orange blossom, and Akigalawood."}
-            col_4 = {"name": "GA Acqua Di Gio Profondo", "role": "High-Heat Outdoor Shield (LO / EC)", "notes": "Deep mineral marine accords and green mandarin."} if len(target_badges) >= 3 else None
-        elif "Winter" in t_band:
+        # Select 3-4 Colognes
+        if "Summer" in t_band or t_wx["temp"] >= 75.0:
+            col_1 = {"name": "Creed Virgin Island Water / Alt. Colada", "role": "Tropical Day & Beach Sovereign (LO / EC)", "notes": "Jamaican lime zest, coconut water, white rum, and sugar cane. High-heat resort benchmark."}
+            col_2 = {"name": "Alt. Reality (LV Imagination DNA)", "role": "Luminous Daytime Refresher (EC / LO)", "notes": "Chinese black tea, Sicilian citrus, fresh ginger, and sparkling ambroxan. Spa-like luxury refinement."}
+            col_3 = {"name": "Alt. Blue Fate (Blue Talisman DNA)", "role": "Evening Dinner & Sunset Social (DN / EC)", "notes": "Juicy pear, fresh ginger, orange blossom, and radiating Akigalawood. Magnetic evening trail."}
+            col_4 = {"name": "GA Acqua Di Gio Profondo", "role": "Deep Marine Water & Wind Shield (LO / EC)", "notes": "Deep mineral marine accords, green mandarin, and blue cypress. Sweat and salt-air defense."} if ("LO" in target_badges or len(target_badges) >= 3) else None
+        elif "Winter" in t_band or t_wx["temp"] < 48.0:
             col_1 = {"name": "Givenchy Gentleman Society", "role": "Universal Boardroom King (WP / DN)", "notes": "Cardamom, French clary sage, vetiver trio, and dark vanilla."}
             col_2 = {"name": "Alt. Pristine (Aventus x BR540)", "role": "Daytime Luminous Aristocrat (WP / EC)", "notes": "Crisp pineapple, smoky birch, burnt sugar saffron, and amberwood."}
             col_3 = {"name": "D&G The One for Men", "role": "Intimate Date Night & Dinner (DN)", "notes": "Warm cardamom, fresh ginger, cured tobacco, and cozy amber."}
             col_4 = {"name": "HOK Nomade Ember", "role": "Sub-Freezing Nightlife Weapon (NL / DN)", "notes": "Smoked agarwood, incense tears, sweet raspberry, and raw leather."} if "NL" in target_badges else None
-        else: # Transitional Seasons (Current DMV & Travel Baseline)
+        else: # Transitional Seasons
             col_1 = {"name": "Givenchy Gentleman Society", "role": "The Boardroom Anchor (WP / DN)", "notes": "Cardamom, French sage, vetiver, and dark vanilla; effortless authority."}
             col_2 = {"name": "Alt. Identity (YSL MYSLF DNA)", "role": "Modern Contemporary Daily (WP / EC)", "notes": "Calabrian bergamot, orange blossom, and clean Ambrofix."}
             col_3 = {"name": "Alt. Blue Fate (Blue Talisman DNA)", "role": "The Magnetic Social Bridge (DN / EC / LO)", "notes": "Juicy pear, fresh ginger, ambroxan, and Akigalawood."}
@@ -942,40 +996,40 @@ with tab_planner:
         
         playbook_data = []
         for badge in target_badges:
-            if badge == "WP":
+            if badge == "LO":
                 playbook_data.append({
-                    "Scenario": "💼 Work & Meetings",
+                    "Scenario": "🌊 Waterfront, Beach & Resort",
                     "Deployment Recipe": f"{base_1} + {col_1['name']}",
-                    "Sillage Cap": "3–4 ft (Office Safe)",
-                    "Strategic Rationale": "Crisp, authoritative woody-aromatic trail; zero cloying sweetness in boardroom."
+                    "Sillage Cap": "Moderate to Strong (4–5 ft)",
+                    "Strategic Rationale": "Zesty lime, coconut, and spring water radiate effortlessly under tropical sunshine without cloying."
                 })
             elif badge == "EC":
                 playbook_data.append({
-                    "Scenario": "☕ Casual Daytime & Transit",
+                    "Scenario": "☕ Casual Daytime & Excursions",
                     "Deployment Recipe": f"Unscented Canvas + {col_2['name']} (Solo)",
                     "Sillage Cap": "2–3 ft (Clean Bubble)",
-                    "Strategic Rationale": "Modern sparkling florals or tea; refreshing and inoffensive during flights or errands."
+                    "Strategic Rationale": "Crisp sparkling tea and ginger; perfectly refreshing for warm daytime walking and transit."
                 })
             elif badge == "DN":
                 playbook_data.append({
-                    "Scenario": "🍸 Dinner & Date Night",
+                    "Scenario": "🍸 Sunset Dinner & Date Night",
                     "Deployment Recipe": f"{base_1} + {col_3['name']}",
                     "Sillage Cap": "3–4 ft (Magnetic)",
-                    "Strategic Rationale": "Luminous fruit, ginger, or warm spices that draw in close proximity across a dinner table."
+                    "Strategic Rationale": "Radiant pear, orange blossom, and Akigalawood project an alluring evening presence across open-air patios."
                 })
             elif badge == "NL" and col_4:
                 playbook_data.append({
                     "Scenario": "🪩 Nightlife & Lounges",
                     "Deployment Recipe": f"{base_2 if base_2 else base_1} + {col_4['name']}",
                     "Sillage Cap": "6–8 ft (Beast Mode)",
-                    "Strategic Rationale": "High-impact spices and woods that slice through crowded evening social clubs."
+                    "Strategic Rationale": "Deep marine minerals or bold spices cutting through crowded late-night venues."
                 })
-            elif badge == "LO" and col_4:
+            elif badge == "WP":
                 playbook_data.append({
-                    "Scenario": "🌊 Waterfront & Outdoors",
-                    "Deployment Recipe": f"{base_1} + {col_4['name']}",
-                    "Sillage Cap": "4–6 ft (Open-Air)",
-                    "Strategic Rationale": "Resilient mineral or tea accords that cut through river breezes without fading."
+                    "Scenario": "💼 Meetings & Formal Context",
+                    "Deployment Recipe": f"{base_1} + {col_2['name']}",
+                    "Sillage Cap": "3–4 ft (Office Safe)",
+                    "Strategic Rationale": "Controlled tea and ambroxan maintaining sharp executive composure in air-conditioned spaces."
                 })
                 
         if playbook_data:
