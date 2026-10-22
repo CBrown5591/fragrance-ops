@@ -106,13 +106,12 @@ st.markdown("""
         padding: 18px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
     }
-    .weather-grid {
-        background-color: #161B22;
+    .capsule-card {
+        background: #161B22;
         border: 1px solid #30363D;
-        border-radius: 8px;
-        padding: 12px;
-        margin-top: 10px;
-        margin-bottom: 14px;
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 12px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -243,11 +242,6 @@ PRESET_CITIES = {
 
 @st.cache_data(ttl=900)
 def get_comprehensive_weather(lat, lon):
-    """
-    Pulls live weather and daily metrics from Open-Meteo:
-    - Current temp, wind speed, relative humidity, apparent temperature (feels like / wind chill)
-    - Daily max temp (High), min temp (Low), precipitation probability max (Rain chance)
-    """
     url = (
         f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
         "&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m"
@@ -278,7 +272,6 @@ def get_comprehensive_weather(lat, lon):
             "rain_chance": rain_chance
         }
     except Exception:
-        # Fallback to reasonable standard values
         return {
             "temp": 65.0,
             "humidity": 55,
@@ -331,10 +324,6 @@ def reverse_geocode_coords(lat, lon):
         return f"{lat:.2f}°, {lon:.2f}°"
 
 def evaluate_thermodynamic_band(temp, wind_chill):
-    """
-    Evaluates seasonal band based on effective perceived wind chill rather than raw temp alone.
-    If strong wind chill drags perceived temp down, shifts to colder bracket.
-    """
     effective_temp = min(temp, wind_chill)
     if effective_temp < 45:
         return "Deep Winter (< 45°F)"
@@ -458,12 +447,10 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("🌤️ Meteorological Panel")
     
-    # Primary temp metric with Feels Like / Wind Chill indicator
     delta_chill = wx["wind_chill"] - wx["temp"]
     delta_str = f"Feels like {wx['wind_chill']:.1f}°F" if abs(delta_chill) >= 1.0 else "Stable air"
     st.metric("Live Ambient Temp", f"{wx['temp']:.1f} °F", delta_str)
     
-    # 2x2 Weather Details Grid
     w_col1, w_col2 = st.columns(2)
     with w_col1:
         st.write(f"📈 **High:** {wx['high']:.0f}°F")
@@ -485,10 +472,11 @@ matrix_df = fetch_matrix_from_drive()
 # ---------------------------------------------------------
 # MAIN APP TABS
 # ---------------------------------------------------------
-tab_briefing, tab_explorer, tab_directory = st.tabs([
+tab_briefing, tab_explorer, tab_directory, tab_planner = st.tabs([
     "👔 Daily Briefing & Ops",
     "🔍 Matrix Explorer & Generator",
-    "📖 Standalone Directory"
+    "📖 Standalone Directory",
+    "🧳 Trip Capsule Planner"
 ])
 
 # ---------------------------------------------------------
@@ -498,7 +486,6 @@ with tab_briefing:
     st.header("Daily Operational Scent Briefing")
     st.caption(f"Atmospheric thermodynamics locked to {active_location_label} ({wx['temp']:.1f}°F, High {wx['high']:.0f}°F / Low {wx['low']:.0f}°F, {wx['humidity']}% Humidity).")
     
-    # SCENARIO SELECTOR
     SCENARIO_OPTIONS = {
         "💼 Work & Professional (Office Desk, Meetings, Leadership)": {
             "badge": "WP",
@@ -553,9 +540,6 @@ with tab_briefing:
     
     st.caption(f"*{scen_meta['desc']}*")
     
-    # ---------------------------------------------------------
-    # WEATHER FACTORING & SCENT FILTERING ENGINE
-    # ---------------------------------------------------------
     candidate_df = matrix_df.copy()
     if rotation_mode == "🎯 Standalone Solo Only":
         candidate_df = candidate_df[candidate_df["Pairing Type"] == "Standalone Solo Wear"]
@@ -568,12 +552,8 @@ with tab_briefing:
     if scenario_filtered_df.empty:
         scenario_filtered_df = candidate_df
         
-    # ATMOSPHERIC HEURISTICS FACTORED INTO SELECTION:
     weather_tags = []
     
-    # 1. Rain / High Humidity (> 70% Humidity or > 35% Rain Chance):
-    # Air has heavy moisture; weak aquatics or delicate light citruses thin out.
-    # Prioritize blends with fixative anchors: sage, vetiver, ambroxan, dark oak, leatherwood, or ginger.
     is_damp = (wx["humidity"] >= 70 or wx["rain_chance"] >= 35)
     if is_damp:
         weather_tags.append("🌧️ Rain / High Humidity Anchor Active")
@@ -583,8 +563,6 @@ with tab_briefing:
         if damp_mask.any():
             scenario_filtered_df = scenario_filtered_df[damp_mask]
             
-    # 2. Wind Chill Factor (< 50°F Wind Chill):
-    # If biting wind or sharp chill is detected, bench thin summer freshies in favor of insulating timber/resins.
     is_chilly = (wx["wind_chill"] < 50.0)
     if is_chilly:
         weather_tags.append("❄️ Wind Chill Suppression Active")
@@ -594,8 +572,6 @@ with tab_briefing:
         if chill_mask.any():
             scenario_filtered_df = scenario_filtered_df[chill_mask]
 
-    # 3. High Heat Spike (> 78°F High):
-    # If daytime high pushes above 78°F, bench heavy ouds, thick vanillas, and heavy gourmands.
     is_warm_spike = (wx["high"] >= 78.0)
     if is_warm_spike:
         weather_tags.append("☀️ Warm Afternoon Spike Guard")
@@ -608,7 +584,6 @@ with tab_briefing:
     if not scenario_filtered_df.empty:
         today_num = datetime.date.today().toordinal()
         badge_seed = sum(ord(c) for c in target_badge)
-        # Factor humidity, rain chance, and wind chill into selection seed
         wx_seed = int(wx["temp"] * 3 + wx["humidity"] + wx["rain_chance"] + wx["wind_chill"])
         random.seed(today_num + wx_seed + badge_seed)
         daily_idx = random.randint(0, len(scenario_filtered_df) - 1)
@@ -626,10 +601,7 @@ with tab_briefing:
         projection = safe_val(daily_choice.get("Projection Strength"), scen_meta["cap"])
         scent_notes = safe_val(daily_choice.get("Scent Profile & Notes Breakdown"), "Harmonious scent progression tailored to the operational scenario.")
         
-        # Determine Canvas using Wind Chill and High Temp
         is_solo = (pairing_type == "Standalone Solo Wear" or "none" in base_layer.lower())
-        
-        # If Wind Chill is brisk (< 65°F), prescribe Body Butter for maximum lipid sealing; otherwise lotion
         use_butter = (wx["wind_chill"] < 65.0)
         canvas_base = "Unscented Body Butter" if use_butter else "Unscented Body Lotion"
         
@@ -649,7 +621,6 @@ with tab_briefing:
             else:
                 canvas_reason = f"Warm Dynamic ({wx['high']:.0f}°F daytime peak): Prevents heavy oil suffocation while maintaining clean sillage."
         
-        # Spray Strategy Adjustment for High Wind (> 10 mph) or Open Air
         spray_strategy = scen_meta["sprays"]
         if wx["wind"] >= 10.0 or target_badge == "LO":
             spray_strategy += f" *[Wind Defense Active: 1 extra mist across jacket collar/lapel to counter {wx['wind']:.1f} mph outdoor wind shear].*"
@@ -688,7 +659,6 @@ with tab_briefing:
             st.write(f"- **Grooming Canvas:** **{canvas_recommendation}**")
             st.caption(f"*{canvas_reason}*")
             
-            # Secondary Pivot Context if Day has high temperature delta (e.g. Low 50°F, High 78°F)
             temp_range = wx["high"] - wx["low"]
             if temp_range >= 18.0:
                 st.markdown(f"""
@@ -826,3 +796,187 @@ with tab_directory:
         st.dataframe(search_res[disp_cols], use_container_width=True, hide_index=True)
     else:
         st.info("Type a note (e.g. 'bergamot', 'leatherwood', 'pear') or fragrance name above to query matching profiles.")
+
+# ---------------------------------------------------------
+# TAB 4: 🧳 TRIP CAPSULE PLANNER
+# ---------------------------------------------------------
+with tab_planner:
+    st.header("🧳 Trip Fragrance Capsule Planner")
+    st.caption("Pack light, project right. Build a lean, high-synergy travel wardrobe of 1–2 universal base creams and 3–4 colognes that cover every scenario of your itinerary.")
+    
+    p_col1, p_col2 = st.columns([1.2, 1.8])
+    
+    with p_col1:
+        st.subheader("1. Trip Parameters")
+        dest_input = st.text_input("Destination(s)", value="Atlanta, GA", placeholder="e.g. Atlanta, GA / Miami / London")
+        
+        # Date range picker
+        d_start = datetime.date.today() + datetime.timedelta(days=7)
+        d_end = d_start + datetime.timedelta(days=4)
+        date_range = st.date_input("Travel Dates", value=(d_start, d_end))
+        
+        # Scenarios to cover
+        st.write("**Scenarios to Cover on Trip:**")
+        scen_wp = st.checkbox("💼 Work & Professional (Meetings, Leadership)", value=True)
+        scen_ec = st.checkbox("☕ Everyday & Casual (Daytime, Exploring, Transit)", value=True)
+        scen_dn = st.checkbox("🍸 Date Night & Dining (Intimate, Evening Out)", value=True)
+        scen_nl = st.checkbox("🪩 Nightlife & Lounges (High Impact, Club)", value=False)
+        scen_lo = st.checkbox("🌊 Leisure & Outdoor (Waterfront, Patios, Stadium)", value=False)
+        
+        # Base Cream Allowance
+        cream_choice = st.radio(
+            "Base Cream Allowance",
+            ["1 Universal Anchor Cream", "2 Dynamic Dual Creams"],
+            index=0
+        )
+        
+        plan_button = st.button("🚀 Generate Travel Capsule Plan", use_container_width=True)
+
+    with p_col2:
+        st.subheader("2. Curated Travel Capsule")
+        
+        # Collect target scenario codes
+        target_badges = []
+        if scen_wp: target_badges.append("WP")
+        if scen_ec: target_badges.append("EC")
+        if scen_dn: target_badges.append("DN")
+        if scen_nl: target_badges.append("NL")
+        if scen_lo: target_badges.append("LO")
+        if not target_badges:
+            target_badges = ["WP", "EC", "DN"]
+            
+        # Destination geocode & climate estimation
+        trip_city_matches = search_city_geocoding(dest_input.split("/")[0].strip())
+        if trip_city_matches:
+            c_lat, c_lon = trip_city_matches[0]["lat"], trip_city_matches[0]["lon"]
+            city_label = trip_city_matches[0]["label"]
+        else:
+            c_lat, c_lon = 33.7490, -84.3880
+            city_label = dest_input
+            
+        t_wx = get_comprehensive_weather(c_lat, c_lon)
+        t_band = evaluate_thermodynamic_band(t_wx["temp"], t_wx["wind_chill"])
+        
+        st.markdown(f"""
+        <div style="background-color: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13.5px;">
+            📍 <strong>Target Location:</strong> {city_label}<br>
+            🌡️ <strong>Estimated Climate:</strong> ~{t_wx['temp']:.0f}°F (High {t_wx['high']:.0f}°F / Low {t_wx['low']:.0f}°F) • <strong>Band:</strong> {t_band}<br>
+            🎯 <strong>Required Coverage:</strong> {', '.join(target_badges)}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Algorithm: Determine Anchor Cream(s)
+        # Warm / High Heat: Freshwater Cream (or Ocean)
+        # Transitional / All-Season: Graphite Cream (Sage, Bergamot, Leatherwood)
+        # Cold / Evening heavy: Mahogany Teakwood Cream (Dark oak, timbers)
+        if "Summer" in t_band:
+            base_1 = "Freshwater Cream"
+            base_1_desc = "Universal crisp mountain spring water canvas; prevents heavy cream suffocation in high humidity."
+            base_2 = "Graphite Cream" if cream_choice == "2 Dynamic Dual Creams" else None
+            base_2_desc = "Grounded aromatic sage and leatherwood for air-conditioned meetings and evening dinners." if base_2 else ""
+        elif "Winter" in t_band:
+            base_1 = "Mahogany Teakwood Cream"
+            base_1_desc = "Dense dark timber and frosted lavender foundation; binds warm resins against sub-freezing drafts."
+            base_2 = "Whiskey Reserve Cream" if cream_choice == "2 Dynamic Dual Creams" else None
+            base_2_desc = "Boozy single-malt and white oak for intimate evening dining and cigar lounges." if base_2 else ""
+        else: # Early Fall, Fall, Spring, Pre-Spring
+            base_1 = "Graphite Cream"
+            base_1_desc = "The #1 Versatility carrier; aromatic sage and leatherwood effortlessly anchor boardroom blues, barbershops, and evening woods."
+            base_2 = "Mahogany Teakwood Cream" if cream_choice == "2 Dynamic Dual Creams" else None
+            base_2_desc = "Rich dark oak and frosted lavender; provides thermal reinforcement for outdoor breezes and night lounges." if base_2 else ""
+            
+        # Algorithm: Select 3-4 Colognes
+        # Slot 1: The Daytime Executive Workhorse (WP / EC)
+        # Slot 2: The Luminous Chameleon / Social Bridge (WP / EC / DN / LO)
+        # Slot 3: The Intimate Evening & Dining Anchor (DN)
+        # Slot 4: The Wildcard / Beast Mode or Outdoor Shield (NL or LO)
+        if "Summer" in t_band:
+            col_1 = {"name": "Alt. A (YSL Y DNA)", "role": "Daytime Workhorse (WP / EC)", "notes": "Green apple, ginger, and sage. Clean, sharp daily driver."}
+            col_2 = {"name": "Alt. Reality (LV Imagination DNA)", "role": "Luminous Social Refresher (EC / LO)", "notes": "Chinese black tea, Sicilian citrus, and sparkling ambroxan."}
+            col_3 = {"name": "Alt. Blue Fate (Blue Talisman DNA)", "role": "Evening Dinner / Social (DN / EC)", "notes": "Juicy pear, orange blossom, and Akigalawood."}
+            col_4 = {"name": "GA Acqua Di Gio Profondo", "role": "High-Heat Outdoor Shield (LO / EC)", "notes": "Deep mineral marine accords and green mandarin."} if len(target_badges) >= 3 else None
+        elif "Winter" in t_band:
+            col_1 = {"name": "Givenchy Gentleman Society", "role": "Universal Boardroom King (WP / DN)", "notes": "Cardamom, French clary sage, vetiver trio, and dark vanilla."}
+            col_2 = {"name": "Alt. Pristine (Aventus x BR540)", "role": "Daytime Luminous Aristocrat (WP / EC)", "notes": "Crisp pineapple, smoky birch, burnt sugar saffron, and amberwood."}
+            col_3 = {"name": "D&G The One for Men", "role": "Intimate Date Night & Dinner (DN)", "notes": "Warm cardamom, fresh ginger, cured tobacco, and cozy amber."}
+            col_4 = {"name": "HOK Nomade Ember", "role": "Sub-Freezing Nightlife Weapon (NL / DN)", "notes": "Smoked agarwood, incense tears, sweet raspberry, and raw leather."} if "NL" in target_badges else None
+        else: # Transitional Seasons (Current DMV & Travel Baseline)
+            col_1 = {"name": "Givenchy Gentleman Society", "role": "The Boardroom Anchor (WP / DN)", "notes": "Cardamom, French sage, vetiver, and dark vanilla; effortless authority."}
+            col_2 = {"name": "Alt. Identity (YSL MYSLF DNA)", "role": "Modern Contemporary Daily (WP / EC)", "notes": "Calabrian bergamot, orange blossom, and clean Ambrofix."}
+            col_3 = {"name": "Alt. Blue Fate (Blue Talisman DNA)", "role": "The Magnetic Social Bridge (DN / EC / LO)", "notes": "Juicy pear, fresh ginger, ambroxan, and Akigalawood."}
+            if "NL" in target_badges:
+                col_4 = {"name": "Alt. Farouche Elixir (Sauvage Elixir DNA)", "role": "Nightlife & Beast Mode (NL)", "notes": "Fiery Sichuan pepper, nutmeg, cinnamon, and rich lavender."}
+            elif "LO" in target_badges:
+                col_4 = {"name": "Alt. Reality (LV Imagination DNA)", "role": "Open-Air Waterfront / Patio (LO / EC)", "notes": "Sparkling black tea, ginger, and ambroxan."}
+            else:
+                col_4 = {"name": "Gucci Guilty Pour Homme", "role": "Refined Barbershop Backup (WP / EC / DN)", "notes": "French lavender, Italian lemon, and cedarwood."}
+
+        # Render Base Anchor Box
+        st.markdown(f"""
+        <div class="capsule-card">
+            <span class="badge-tag">FOUNDATION ANCHOR</span>
+            <h3 style="color: #58A6FF; margin: 4px 0;">{base_1}</h3>
+            <p style="margin: 0; font-size: 13.5px; color: #8B949E;">{base_1_desc}</p>
+            {f'<hr style="border-color: #30363D; margin: 8px 0;"><h4 style="color: #BC8CFF; margin: 4px 0;">{base_2}</h4><p style="margin: 0; font-size: 13.5px; color: #8B949E;">{base_2_desc}</p>' if base_2 else ''}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Render 3-4 Colognes
+        colognes_list = [c for c in [col_1, col_2, col_3, col_4] if c is not None]
+        st.write(f"**Selected {len(colognes_list)}-Bottle Travel Roster:**")
+        
+        for i, c in enumerate(colognes_list, 1):
+            st.markdown(f"""
+            <div style="background-color: #161B22; border-left: 4px solid #58A6FF; border-top: 1px solid #30363D; border-right: 1px solid #30363D; border-bottom: 1px solid #30363D; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px;">
+                <div style="font-size: 14.5px; font-weight: 600; color: #E6EDF3;">
+                    Bottle #{i}: <span style="color: #58A6FF;">{c['name']}</span> 
+                    <span style="font-size: 11px; color: #8B949E; margin-left: 8px;">({c['role']})</span>
+                </div>
+                <div style="font-size: 12.5px; color: #8B949E; margin-top: 2px;">{c['notes']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        # Deployment Matrix on Trip
+        st.markdown("---")
+        st.subheader("3. Trip Scenario Deployment Playbook")
+        
+        playbook_data = []
+        for badge in target_badges:
+            if badge == "WP":
+                playbook_data.append({
+                    "Scenario": "💼 Work & Meetings",
+                    "Deployment Recipe": f"{base_1} + {col_1['name']}",
+                    "Sillage Cap": "3–4 ft (Office Safe)",
+                    "Strategic Rationale": "Crisp, authoritative woody-aromatic trail; zero cloying sweetness in boardroom."
+                })
+            elif badge == "EC":
+                playbook_data.append({
+                    "Scenario": "☕ Casual Daytime & Transit",
+                    "Deployment Recipe": f"Unscented Canvas + {col_2['name']} (Solo)",
+                    "Sillage Cap": "2–3 ft (Clean Bubble)",
+                    "Strategic Rationale": "Modern sparkling florals or tea; refreshing and inoffensive during flights or errands."
+                })
+            elif badge == "DN":
+                playbook_data.append({
+                    "Scenario": "🍸 Dinner & Date Night",
+                    "Deployment Recipe": f"{base_1} + {col_3['name']}",
+                    "Sillage Cap": "3–4 ft (Magnetic)",
+                    "Strategic Rationale": "Luminous fruit, ginger, or warm spices that draw in close proximity across a dinner table."
+                })
+            elif badge == "NL" and col_4:
+                playbook_data.append({
+                    "Scenario": "🪩 Nightlife & Lounges",
+                    "Deployment Recipe": f"{base_2 if base_2 else base_1} + {col_4['name']}",
+                    "Sillage Cap": "6–8 ft (Beast Mode)",
+                    "Strategic Rationale": "High-impact spices and woods that slice through crowded evening social clubs."
+                })
+            elif badge == "LO" and col_4:
+                playbook_data.append({
+                    "Scenario": "🌊 Waterfront & Outdoors",
+                    "Deployment Recipe": f"{base_1} + {col_4['name']}",
+                    "Sillage Cap": "4–6 ft (Open-Air)",
+                    "Strategic Rationale": "Resilient mineral or tea accords that cut through river breezes without fading."
+                })
+                
+        if playbook_data:
+            st.table(pd.DataFrame(playbook_data))
