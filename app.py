@@ -73,6 +73,19 @@ st.markdown("""
         margin-right: 6px;
         margin-bottom: 4px;
     }
+    .badge-scenario {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 14px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        background-color: rgba(163, 113, 247, 0.15);
+        color: #BC8CFF;
+        border: 1px solid rgba(163, 113, 247, 0.35);
+        margin-right: 6px;
+        margin-bottom: 4px;
+    }
     .sartorial-card {
         background: #161B22;
         border: 1px solid #30363D;
@@ -95,35 +108,30 @@ NON_PAIRING_SHEETS = [
     "directory", "rules", "tips", "inventory", "rankings"
 ]
 
-# Master Verified Standalone Fragrances Roster
 STANDALONE_MASTER = [
-    {"Custom Profile Name": "The Crisp Blue Alpha", "Top Layer": "Alt. A (YSL Y DNA)", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, LO, NL", "Projection Strength": "Strong (5–6 ft / 4 sp cap)", "Scent Profile & Notes Breakdown": "Green apple, fresh ginger, clary sage, and clean amberwood. Sharp, energetic boardroom daily workhorse.", "Season_Sheet": "All-Season (6-Band Universal)"},
-    {"Custom Profile Name": "The Luminous Modern Executive", "Top Layer": "Alt. Blue Fate (Blue Talisman DNA)", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, DN, LO", "Projection Strength": "Strong (5–6 ft / 3-4 sp cap)", "Scent Profile & Notes Breakdown": "Juicy pear, bergamot, ginger, and radiant ambroxan/Akigalawood. Modern, luminous executive aura.", "Season_Sheet": "Spring / Summer / Early Fall"},
+    {"Custom Profile Name": "The Crisp Blue Alpha", "Top Layer": "Alt. A (YSL Y DNA)", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, LO, NL", "Projection Strength": "Strong (5–6 ft / 4 sp cap)", "Scent Profile & Notes Breakdown": "Green apple, fresh ginger, clary sage, and clean amberwood. Sharp, energetic workhorse.", "Season_Sheet": "All-Season (6-Band Universal)"},
+    {"Custom Profile Name": "The Luminous Modern Executive", "Top Layer": "Alt. Blue Fate (Blue Talisman DNA)", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, DN, LO", "Projection Strength": "Strong (5–6 ft / 3-4 sp cap)", "Scent Profile & Notes Breakdown": "Juicy pear, bergamot, ginger, and radiant ambroxan/Akigalawood. Modern luminous aura.", "Season_Sheet": "Spring / Summer / Early Fall"},
     {"Custom Profile Name": "The Sovereign Society Executive", "Top Layer": "Givenchy Gentleman Society", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, DN, NL", "Projection Strength": "Strong (5–6 ft / 4 sp cap)", "Scent Profile & Notes Breakdown": "Cardamom, French clary sage, wild narcissus, Haitian vetiver, and dark vanilla. Universal boardroom king.", "Season_Sheet": "All-Season (6-Band Universal)"},
-    {"Custom Profile Name": "The High-Tech Corporate Mind", "Top Layer": "Givenchy Pi Neo", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC", "Projection Strength": "Moderate (3–4 ft)", "Scent Profile & Notes Breakdown": "Mandarin, bergamot, herbal myrtle, crystalline cedarwood, and patchouli. Clean, tailored high-tech office cool.", "Season_Sheet": "Pre-Spring / Spring / Early Fall"},
+    {"Custom Profile Name": "The High-Tech Corporate Mind", "Top Layer": "Givenchy Pi Neo", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC", "Projection Strength": "Moderate (3–4 ft)", "Scent Profile & Notes Breakdown": "Mandarin, bergamot, herbal myrtle, crystalline cedarwood, and patchouli. Clean tailored office cool.", "Season_Sheet": "Pre-Spring / Spring / Early Fall"},
     {"Custom Profile Name": "The Modern Mineral Aristocrat", "Top Layer": "Valentino Uomo Born in Roma", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, DN", "Projection Strength": "Moderate (3–4 ft)", "Scent Profile & Notes Breakdown": "Mineral salt accord, violet leaf, fresh ginger, aromatic sage, and smoky vetiver. Modern street-tailored edge.", "Season_Sheet": "Pre-Spring / Spring / Early Fall"},
     {"Custom Profile Name": "The Alpine Aristocrat", "Top Layer": "Alt. Pristine (Aventus x BR540)", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, DN, NL", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Crisp pineapple, smoky birch, burnt sugar saffron, and radiant amberwood. Pristine modern luxury trail.", "Season_Sheet": "Pre-Spring / Spring / Fall"},
     {"Custom Profile Name": "The Seductive Modern Barbershop", "Top Layer": "Gucci Guilty Pour Homme", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, DN", "Projection Strength": "Moderate (3 ft)", "Scent Profile & Notes Breakdown": "Italian lemon, French lavender, orange blossom, and structured cedarwood/patchouli. Refined clean desk grooming.", "Season_Sheet": "Pre-Spring / Spring / Early Fall"},
     {"Custom Profile Name": "The Luminous Imperial Tea", "Top Layer": "Alt. Reality (LV Imagination DNA)", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, LO", "Projection Strength": "Moderate (3–4 ft)", "Scent Profile & Notes Breakdown": "Chinese black tea, Sicilian citrus, fresh ginger, and sparkling ambroxan. Spa-like executive refinement.", "Season_Sheet": "Spring / High Summer / Early Fall"},
     {"Custom Profile Name": "The Modern Floral Executive", "Top Layer": "Alt. Identity (YSL MYSLF DNA)", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, DN", "Projection Strength": "Moderate (3–4 ft)", "Scent Profile & Notes Breakdown": "Calabrian bergamot, orange blossom absolute, and crisp Ambrofix. Tailored contemporary executive daily.", "Season_Sheet": "Spring / Summer / Early Fall"},
     {"Custom Profile Name": "The Gunmetal Assassin", "Top Layer": "John Wick x Scentbird", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, DN, NL", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Cold gunmetal slide accord, spiced lemon, clary sage, and rich amber bourbon over cedar. Disciplined authority.", "Season_Sheet": "Pre-Spring / Fall / Early Winter"},
-    {"Custom Profile Name": "The Deep Abyssal Ocean", "Top Layer": "GA Acqua Di Gio Profondo", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, LO", "Projection Strength": "Strong (5–6 ft)", "Scent Profile & Notes Breakdown": "Deep mineral marine notes, green mandarin, rosemary, and blue cypress. Summer heat & office humidity defense.", "Season_Sheet": "High Summer / Warm Spring"},
+    {"Custom Profile Name": "The Deep Abyssal Ocean", "Top Layer": "GA Acqua Di Gio Profondo", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, LO", "Projection Strength": "Strong (5–6 ft)", "Scent Profile & Notes Breakdown": "Deep mineral marine notes, green mandarin, rosemary, and blue cypress. Waterfront and outdoor humidity defense.", "Season_Sheet": "High Summer / Warm Spring"},
     {"Custom Profile Name": "The Golden Gourmand Sovereign", "Top Layer": "Givenchy Pi", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "No", "Eligible Scenarios": "DN, EC, WP", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Sweet almond, benzoin, tonka bean, and roasted vanilla. Sentimental warmth for cold weather and close quarters.", "Season_Sheet": "Crisp Fall / Deep Winter"},
     {"Custom Profile Name": "The Intimate Tobacco Seduction", "Top Layer": "D&G The One for Men", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "DN, WP", "Projection Strength": "Intimate to Moderate (2–3 ft)", "Scent Profile & Notes Breakdown": "Warm cardamom, fresh ginger, cured tobacco, and cozy amber. Close-proximity evening & date night benchmark.", "Season_Sheet": "Early Fall / Crisp Fall / Deep Winter"},
-    {"Custom Profile Name": "The Authentic Caribbean King", "Top Layer": "Creed Virgin Island Water", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "LO, EC", "Projection Strength": "Moderate (3–4 ft)", "Scent Profile & Notes Breakdown": "Crisp Jamaican lime zest, coconut water, white rum, and sugar cane. High-heat resort and beach staple.", "Season_Sheet": "High Summer / Vacation"},
+    {"Custom Profile Name": "The Authentic Caribbean King", "Top Layer": "Creed Virgin Island Water", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "LO, EC", "Projection Strength": "Moderate (3–4 ft)", "Scent Profile & Notes Breakdown": "Crisp Jamaican lime zest, coconut water, white rum, and sugar cane. High-heat resort and waterfront staple.", "Season_Sheet": "High Summer / Vacation"},
     {"Custom Profile Name": "The Desert Oud Monarch", "Top Layer": "House of Kelam (HOK) Nomade Ember", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "No", "Eligible Scenarios": "NL, DN", "Projection Strength": "Nuclear / Beast Mode (8+ ft / 2 sp cap)", "Scent Profile & Notes Breakdown": "Smoked agarwood, incense tears, sweet tart raspberry, and raw leather. Cold-weather formal evening galas.", "Season_Sheet": "Deep Winter / Late Fall"},
-    {"Custom Profile Name": "The Sovereign Agarwood Suite", "Top Layer": "House of Kelam (HOK) Oud Noir", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, DN, NL", "Projection Strength": "Strong (5–6 ft)", "Scent Profile & Notes Breakdown": "Precious agarwood, rosewood, cardamom, Sichuan pepper, and smoky amber. Boardroom authority.", "Season_Sheet": "Deep Winter / Pre-Spring / Crisp Fall"},
-    {"Custom Profile Name": "The Tactical Ambroxan Alpha", "Top Layer": "Dior Sauvage (EDT/EDP)", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, NL", "Projection Strength": "Strong (5–6 ft / 3 sp cap)", "Scent Profile & Notes Breakdown": "Calabrian bergamot, Sichuan pepper, geranium, and clean metallic ambroxan. Pressed white shirt projection engine.", "Season_Sheet": "All-Season (6-Band Universal)"},
-    {"Custom Profile Name": "The Mediterranean Blue Powerhouse", "Top Layer": "Versace Dylan Blue", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "No", "Eligible Scenarios": "WP, EC, NL", "Projection Strength": "Strong (5–6 ft)", "Scent Profile & Notes Breakdown": "Aquatic citrus, violet leaf, black pepper, ambroxan, and incense. Clean modern power daily.", "Season_Sheet": "Spring / Summer / Early Fall"},
-    {"Custom Profile Name": "The Boozy Oak Aristocrat", "Top Layer": "B&BW Whiskey Reserve (Cologne)", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, DN", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Crisp red apple, single malt whiskey, and aged white oak barrel staves. Rustic autumn refinement.", "Season_Sheet": "Early Fall / Crisp Fall"}
+    {"Custom Profile Name": "The Sovereign Agarwood Suite", "Top Layer": "House of Kelam (HOK) Oud Noir", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, DN, NL", "Projection Strength": "Strong (5–6 ft)", "Scent Profile & Notes Breakdown": "Precious agarwood, rosewood, cardamom, Sichuan pepper, and smoky amber. Authority and evening depth.", "Season_Sheet": "Deep Winter / Pre-Spring / Crisp Fall"},
+    {"Custom Profile Name": "The Tactical Ambroxan Alpha", "Top Layer": "Dior Sauvage (EDT/EDP)", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, NL, LO", "Projection Strength": "Strong (5–6 ft / 3 sp cap)", "Scent Profile & Notes Breakdown": "Calabrian bergamot, Sichuan pepper, geranium, and clean metallic ambroxan. Powerful projection engine.", "Season_Sheet": "All-Season (6-Band Universal)"},
+    {"Custom Profile Name": "The Mediterranean Blue Powerhouse", "Top Layer": "Versace Dylan Blue", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "No", "Eligible Scenarios": "WP, EC, NL, LO", "Projection Strength": "Strong (5–6 ft)", "Scent Profile & Notes Breakdown": "Aquatic citrus, violet leaf, black pepper, ambroxan, and incense. Clean modern power daily.", "Season_Sheet": "Spring / Summer / Early Fall"},
+    {"Custom Profile Name": "The Boozy Oak Aristocrat", "Top Layer": "B&BW Whiskey Reserve (Cologne)", "Pairing Type": "Standalone Solo Wear", "Base Layer": "None (Unscented Canvas)", "Particle Primer Compatible": "Yes", "Eligible Scenarios": "WP, EC, DN, LO", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Crisp red apple, single malt whiskey, and aged white oak barrel staves. Autumn stadium & lounge refinement.", "Season_Sheet": "Early Fall / Crisp Fall"}
 ]
 
 @st.cache_data(ttl=300, show_spinner="Syncing with Fragrance Matrix in Google Drive...")
 def fetch_matrix_from_drive():
-    """
-    Connects to Google Drive using Streamlit Secrets.
-    Ingests pairing worksheets and merges with standalone solo wears.
-    """
     solo_df = pd.DataFrame(STANDALONE_MASTER)
     
     if "gcp_service_account" not in st.secrets:
@@ -158,7 +166,6 @@ def fetch_matrix_from_drive():
                 (master["Base Layer"].astype(str).str.strip().str.lower() != "nan")
             ]
             master.fillna("", inplace=True)
-            # Combine pairing matrix with standalone solo wears
             combined = pd.concat([master, solo_df], ignore_index=True)
             return combined
             
@@ -168,7 +175,6 @@ def fetch_matrix_from_drive():
         return pd.concat([get_fallback_dataframe(), solo_df], ignore_index=True)
 
 def clean_matrix_columns(df):
-    """Standardizes column headers across sheets."""
     col_map = {
         'Pairing Type': 'Pairing Type',
         'Base Layer': 'Base Layer',
@@ -188,27 +194,30 @@ def clean_matrix_columns(df):
     return df
 
 def get_fallback_dataframe():
-    """Provides verified layering rows if Google Drive is offline."""
     data = [
         {"Season_Sheet": "Early Fall (Transitional 58°F – 72°F)", "Pairing Type": "Body Cream Layer", "Base Layer": "Graphite Cream", "Particle Primer Compatible": "Yes", "Top Layer": "Givenchy Gentleman Society", "Custom Profile Name": "The Modern Herbal Executive", "Eligible Scenarios": "WP, DN", "Projection Strength": "Strong (5–6 ft / 4 sp cap)", "Scent Profile & Notes Breakdown": "French sage mirrors Society sage; leatherwood grounds vetiver and cedarwood."},
+        {"Season_Sheet": "Early Fall (Transitional 58°F – 72°F)", "Pairing Type": "Body Cream Layer", "Base Layer": "Mahogany Teakwood", "Particle Primer Compatible": "Yes", "Top Layer": "Alt. Blue Fate", "Custom Profile Name": "The Radiant Executive Timber", "Eligible Scenarios": "WP, DN, LO, NL", "Projection Strength": "Strong (5–6 ft)", "Scent Profile & Notes Breakdown": "Juicy pear, fresh ginger, and orange blossom over rich mahogany and oak. Magnetic waterfront evening presence."},
         {"Season_Sheet": "Early Fall (Transitional 58°F – 72°F)", "Pairing Type": "Body Cream Layer", "Base Layer": "Graphite Cream", "Particle Primer Compatible": "Yes", "Top Layer": "Gucci Guilty Pour Homme", "Custom Profile Name": "The High-Style Executive", "Eligible Scenarios": "WP, DN, EC", "Projection Strength": "Moderate (3 ft)", "Scent Profile & Notes Breakdown": "French lavender and lemon slice through thawing chill over structured leatherwood."},
-        {"Season_Sheet": "Early Fall (Transitional 58°F – 72°F)", "Pairing Type": "Body Cream Layer", "Base Layer": "Graphite Cream", "Particle Primer Compatible": "Yes", "Top Layer": "Alt. Identity (YSL MYSLF)", "Custom Profile Name": "The Tailored Contemporary Alpha", "Eligible Scenarios": "WP, EC, DN", "Projection Strength": "Moderate (3–4 ft)", "Scent Profile & Notes Breakdown": "Aromatic sage and bergamot contrast clean orange blossom and Ambrofix."},
-        {"Season_Sheet": "Crisp Fall (45°F – 60°F)", "Pairing Type": "Body Cream Layer", "Base Layer": "Mahogany Teakwood", "Particle Primer Compatible": "Yes", "Top Layer": "Alt A (YSL Y)", "Custom Profile Name": "The Power Blue Executive", "Eligible Scenarios": "WP, EC", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Crisp green apple, ginger, and sage anchored by dense mahogany and teakwood."},
+        {"Season_Sheet": "Early Fall (Transitional 58°F – 72°F)", "Pairing Type": "Body Cream Layer", "Base Layer": "Mahogany Teakwood", "Particle Primer Compatible": "Yes", "Top Layer": "GA Acqua Di Gio Profondo", "Custom Profile Name": "The Oceanic Executive", "Eligible Scenarios": "WP, EC, LO", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Crisp mineral deep sea notes cut through rich timbers and frosted lavender. Waterfront & open air ready."},
+        {"Season_Sheet": "Crisp Fall (45°F – 60°F)", "Pairing Type": "Body Cream Layer", "Base Layer": "Whiskey Reserve", "Particle Primer Compatible": "Yes", "Top Layer": "John Wick x Scentbird", "Custom Profile Name": "The Premium Lounge", "Eligible Scenarios": "DN, WP, NL, LO", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Amber bourbon and cedarwood lock directly onto whiskey and oak. Warm stadium & chilly evening benchmark."},
         {"Season_Sheet": "Spring (Warming 55°F – 70°F)", "Pairing Type": "Cologne Mixology", "Base Layer": "Alt. Splish (D&G Light Blue)", "Particle Primer Compatible": "Yes", "Top Layer": "Alt. Reality (LV Imagination)", "Custom Profile Name": "The Sicilian Citrus Tea", "Eligible Scenarios": "EC, WP, LO", "Projection Strength": "Moderate (3–4 ft)", "Scent Profile & Notes Breakdown": "Mandarin and grapefruit peel blend into black tea, ginger, and ambroxan."},
         {"Season_Sheet": "High Summer (75°F – 95°F+)", "Pairing Type": "Body Cream Layer", "Base Layer": "Ocean Cream", "Particle Primer Compatible": "Yes", "Top Layer": "Alt. Blue Fate (Blue Talisman)", "Custom Profile Name": "The Luminous Azure Sea", "Eligible Scenarios": "EC, WP, LO", "Projection Strength": "Moderate to Strong (4–5 ft)", "Scent Profile & Notes Breakdown": "Juicy pear and Akigalawood float over coastal air and blue cypress."}
     ]
     return pd.DataFrame(data)
 
 # ---------------------------------------------------------
-# METEOROLOGICAL & GEOLOCATION LAYER
+# METEOROLOGICAL & GEOCODING SEARCH ENGINE
 # ---------------------------------------------------------
 PRESET_CITIES = {
     "Washington, D.C.": {"lat": 38.9072, "lon": -77.0369},
+    "National Harbor, MD": {"lat": 38.7848, "lon": -77.0169},
     "New York, NY": {"lat": 40.7128, "lon": -74.0060},
     "Miami, FL": {"lat": 25.7617, "lon": -80.1918},
+    "Orlando, FL": {"lat": 28.5383, "lon": -81.3792},
     "Atlanta, GA": {"lat": 33.7490, "lon": -84.3880},
     "Chicago, IL": {"lat": 41.8781, "lon": -87.6298},
-    "Los Angeles, CA": {"lat": 34.0522, "lon": -118.2437}
+    "Los Angeles, CA": {"lat": 34.0522, "lon": -118.2437},
+    "St. Thomas, VI": {"lat": 18.3354, "lon": -64.9534}
 }
 
 @st.cache_data(ttl=900)
@@ -222,6 +231,35 @@ def get_live_weather(lat, lon):
         return temp, wind
     except Exception:
         return 65.0, 5.0
+
+@st.cache_data(ttl=3600)
+def search_city_geocoding(query):
+    """Searches any city worldwide using Open-Meteo Geocoding API."""
+    if not query or len(query.strip()) < 2:
+        return []
+    url = f"https://geocoding-api.open-meteo.com/v1/search?name={query.strip()}&count=6&language=en&format=json"
+    try:
+        r = requests.get(url, timeout=5).json()
+        results = r.get("results", [])
+        formatted = []
+        for res in results:
+            name = res.get("name", "Unknown")
+            admin = res.get("admin1", "")
+            country = res.get("country", "")
+            label_parts = [name]
+            if admin and admin != name:
+                label_parts.append(admin)
+            if country:
+                label_parts.append(country)
+            label = ", ".join(label_parts)
+            formatted.append({
+                "label": label,
+                "lat": float(res.get("latitude")),
+                "lon": float(res.get("longitude"))
+            })
+        return formatted
+    except Exception:
+        return []
 
 @st.cache_data(ttl=3600)
 def reverse_geocode_coords(lat, lon):
@@ -250,31 +288,40 @@ def determine_seasonal_band(temp):
 # SARTORIAL COLOR MATCHING REGISTRY
 # ---------------------------------------------------------
 SARTORIAL_MAP = {
-    "The Crisp Blue Alpha": {"name": "Deep Navy & Crisp Gunmetal", "primary": "#0D2A6B", "accent": "#5A6570", "styling": "Crisp blue aromatic lift over modern tailored grey suiting."},
+    "The Crisp Blue Alpha": {"name": "Deep Navy & Crisp Gunmetal", "primary": "#0D2A6B", "accent": "#5A6570", "styling": "Crisp blue aromatic lift over modern tailored suiting or clean dark denim."},
     "The Luminous Modern Executive": {"name": "Slate Charcoal & Soft Lavender", "primary": "#2B303A", "accent": "#9E97A9", "styling": "Modern ambroxan and orange blossom over tailored slate."},
-    "The Sovereign Society Executive": {"name": "Midnight Navy & Cardamom Bronze", "primary": "#1A2238", "accent": "#A3704C", "styling": "Rich narcissus and dark vanilla over deep executive navy."},
+    "The Sovereign Society Executive": {"name": "Midnight Navy & Cardamom Bronze", "primary": "#1A2238", "accent": "#A3704C", "styling": "Rich narcissus and dark vanilla over deep executive navy with warm leather accents."},
     "The High-Tech Corporate Mind": {"name": "Slate Olive & Sunlit Amber", "primary": "#3B443B", "accent": "#D9822B", "styling": "Herbal myrtle and cedar balanced by energetic mandarin."},
     "The Modern Mineral Aristocrat": {"name": "Mineral Slate & Smoked Sage", "primary": "#3C4A57", "accent": "#8A9A86", "styling": "Mineral salt and clary sage over muted herbal earth."},
     "The Alpine Aristocrat": {"name": "Deep Teak Brown & Alpine Silver", "primary": "#2E1F18", "accent": "#D6DBDF", "styling": "Polished dark timber balancing frosty green tea air."},
     "The Seductive Modern Barbershop": {"name": "Charcoal Wool & French Lilac", "primary": "#33383B", "accent": "#92849E", "styling": "Clean orange blossom and French lavender over dark suiting."},
-    "The Luminous Imperial Tea": {"name": "Black Tea Amber & Cool Slate", "primary": "#8C4A28", "accent": "#4A5868", "styling": "Chinese black tea and ginger grounded in tailored slate."},
+    "The Luminous Imperial Tea": {"name": "Black Tea Amber & Cool Slate", "primary": "#8C4A28", "accent": "#4A5868", "styling": "Chinese black tea and ginger grounded in tailored slate chinos."},
     "The Modern Floral Executive": {"name": "Slate Charcoal & Soft Lilac", "primary": "#2C3038", "accent": "#A394AA", "styling": "Clean orange blossom and Ambrofix over dark structured slate."},
-    "The Gunmetal Assassin": {"name": "Gunmetal Steel & Bourbon Ochre", "primary": "#3A3E45", "accent": "#B5732A", "styling": "Cold metallic slide and amber bourbon over tactical wool."},
+    "The Gunmetal Assassin": {"name": "Gunmetal Steel & Bourbon Ochre", "primary": "#3A3E45", "accent": "#B5732A", "styling": "Cold metallic slide and amber bourbon over tactical wool or leather."},
     "The Deep Abyssal Ocean": {"name": "Deep Nautical Navy & Mineral Sea Grey", "primary": "#122038", "accent": "#8898A6", "styling": "Salty marine accords and green mandarin over abyssal navy."},
+    "The Oceanic Executive": {"name": "Deep Marine Navy & Frosted Steel", "primary": "#0D2A6B", "accent": "#8A9EA7", "styling": "Tailored dark navy overshirt with frosted steel trousers; built for waterfront breezes."},
+    "The Radiant Executive Timber": {"name": "Deep Teak Brown & Washed Mineral Blue", "primary": "#2E1F18", "accent": "#4F6B85", "styling": "Tailored selvedge denim or dark timber trousers with washed mineral blue layer."},
     "The Golden Gourmand Sovereign": {"name": "Dark Espresso & Warm Honey Tan", "primary": "#281D17", "accent": "#C48D47", "styling": "Sweet almond and benzoin resting on dark roasted espresso."},
-    "The Intimate Tobacco Seduction": {"name": "Espresso & Spiced Cognac", "primary": "#2A1D15", "accent": "#9E5A2A", "styling": "Cozy tobacco and ginger over rich brown knitwear."},
+    "The Intimate Tobacco Seduction": {"name": "Espresso & Spiced Cognac", "primary": "#2A1D15", "accent": "#9E5A2A", "styling": "Cozy tobacco and ginger over rich brown knitwear for close dining."},
     "The Authentic Caribbean King": {"name": "Palm Green & Coconut Shell Tan", "primary": "#324A38", "accent": "#9C7A58", "styling": "Lime zest, sugar cane, and white rum in island earth tones."},
     "The Desert Oud Monarch": {"name": "Midnight Black & Desert Crimson", "primary": "#1A1A1A", "accent": "#801B2B", "styling": "Smoky oud and sweet raspberry over sleek nocturnal darks."},
-    "The Sovereign Agarwood Suite": {"name": "Smoked Charcoal & Rosewood Bronze", "primary": "#2B2D33", "accent": "#8C4F47", "styling": "Agarwood, rosewood, and cardamom in a sovereign corporate cut."},
+    "The Sovereign Agarwood Suite": {"name": "Smoked Charcoal & Rosewood Bronze", "primary": "#2B2D33", "accent": "#8C4F47", "styling": "Agarwood, rosewood, and cardamom in a sovereign corporate or gala cut."},
     "The Tactical Ambroxan Alpha": {"name": "Tactical Gunmetal & Electric Bergamot Blue", "primary": "#2A2C2E", "accent": "#3A6B88", "styling": "Fiery Sichuan pepper and ambroxan over dark technical gear."},
     "The Mediterranean Blue Powerhouse": {"name": "Midnight Blue & Smoked Incense Grey", "primary": "#121F38", "accent": "#525B66", "styling": "Aquatic citrus, violet leaf, and incense in sharp contrast."},
-    "The Boozy Oak Aristocrat": {"name": "Rich Cognac & Dark Oak Charcoal", "primary": "#8C4820", "accent": "#2A2E33", "styling": "Crisp apple and single malt whiskey over structured dark wool."}
+    "The Boozy Oak Aristocrat": {"name": "Rich Cognac & Dark Oak Charcoal", "primary": "#8C4820", "accent": "#2A2E33", "styling": "Crisp apple and single malt whiskey over structured dark wool or stadium jacket."},
+    "The Premium Lounge": {"name": "Gunmetal Steel & Bourbon Ochre", "primary": "#3A3E45", "accent": "#B5732A", "styling": "Amber bourbon and dark cedarwood over heavy wool or leather jacket."},
+    "The Modern Herbal Executive": {"name": "Executive Navy & Cardamom Bronze", "primary": "#1A2238", "accent": "#A3704C", "styling": "Suited navy trouser with bronze/gunmetal hardware."},
+    "The High-Style Executive": {"name": "Charcoal Wool & French Lilac", "primary": "#2B3038", "accent": "#9E92A8", "styling": "Charcoal relaxed trousers with soft heather lilac knit."},
+    "The Tailored Contemporary Alpha": {"name": "Charcoal Slate & Ice Blue", "primary": "#3E444C", "accent": "#A5C9EB", "styling": "Slate tailored trousers with crisp ice-blue dress shirt."},
+    "The Power Blue Executive": {"name": "Deep French Blue & Crisp White", "primary": "#0D2A6B", "accent": "#FFFFFF", "styling": "Dark structured blazer and crisp collared poplin."},
+    "The Sicilian Citrus Tea": {"name": "Earthy Olive & Sunlit Ochre", "primary": "#4A5240", "accent": "#D4A373", "styling": "Smart casual linen/knit with warm ochre wrist watch strap."},
+    "The Alpine Tea Stream": {"name": "Black Tea Amber & Cool Slate", "primary": "#8C4A28", "accent": "#4A5868", "styling": "Grounded warm-amber tones over tailored slate chinos."}
 }
 
 DEFAULT_PALETTE = {"name": "Classic Executive Slate & White", "primary": "#2F3E46", "accent": "#F8F9FA", "styling": "Clean tailored neutral wardrobe with subtle brushed steel accent."}
 
 # ---------------------------------------------------------
-# SIDEBAR CONTROLS
+# SIDEBAR CONTROLS & LOCATION SEARCH ENGINE
 # ---------------------------------------------------------
 with st.sidebar:
     st.image("https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=500&auto=format&fit=crop&q=60", use_container_width=True)
@@ -284,7 +331,7 @@ with st.sidebar:
     
     st.subheader("⚙️ Deployment Mode")
     rotation_mode = st.radio(
-        "Daily Briefing Bias",
+        "Wardrobe Deployment",
         ["🔄 Full Wardrobe (Mixology + Solo)", "🎯 Standalone Solo Only", "🧪 Layering & Mixology Only"],
         index=0
     )
@@ -292,9 +339,9 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("📍 Location Mode")
     loc_mode = st.radio(
-        "Source",
-        ["📱 Phone GPS (Live)", "🏙️ City Presets / Manual"],
-        index=0 if HAS_GEOLOCATION else 1
+        "Select Mode",
+        ["📱 Phone GPS (Live)", "🔍 Search Any City", "🏙️ Quick Presets"],
+        index=0 if HAS_GEOLOCATION else 2
     )
     
     active_location_label = "Washington, D.C."
@@ -316,8 +363,29 @@ with st.sidebar:
         else:
             st.warning("Install `streamlit-js-eval` for phone GPS.")
             active_location_label = "Washington, D.C. (Default)"
-    else:
-        selected_city = st.selectbox("Select Preset", list(PRESET_CITIES.keys()), index=0)
+            
+    elif loc_mode == "🔍 Search Any City":
+        search_input = st.text_input("Enter City, State or Country", placeholder="e.g. Philadelphia, Austin, Paris, London...")
+        if search_input:
+            search_matches = search_city_geocoding(search_input)
+            if search_matches:
+                choice = st.selectbox(
+                    "Matching Locations Found",
+                    search_matches,
+                    format_func=lambda x: x["label"]
+                )
+                current_lat = choice["lat"]
+                current_lon = choice["lon"]
+                active_location_label = f"🔍 {choice['label']}"
+            else:
+                st.warning(f"No coordinates found for '{search_input}'. Check spelling or try a broader region.")
+                active_location_label = "Washington, D.C. (Default)"
+        else:
+            st.caption("Type any destination above to query live global weather telemetry.")
+            active_location_label = "Washington, D.C. (Default)"
+            
+    else:  # Quick Presets
+        selected_city = st.selectbox("Select Metro Preset", list(PRESET_CITIES.keys()), index=0)
         current_lat = PRESET_CITIES[selected_city]["lat"]
         current_lon = PRESET_CITIES[selected_city]["lon"]
         active_location_label = f"🏙️ {selected_city}"
@@ -328,7 +396,7 @@ with st.sidebar:
     
     st.markdown("---")
     st.metric("Live Ambient Temp", f"{temp:.1f} °F", f"Wind: {wind} mph")
-    st.caption(f"Location: **{active_location_label}**")
+    st.caption(f"Active: **{active_location_label}**")
     st.info(f"**Target Seasonal Band:** {active_band}")
     
     if st.button("🔄 Sync with Google Drive Now"):
@@ -348,34 +416,85 @@ tab_briefing, tab_explorer, tab_directory = st.tabs([
 ])
 
 # ---------------------------------------------------------
-# TAB 1: DAILY BRIEFING & OPS
+# TAB 1: DAILY BRIEFING & OPS (SCENARIO-AWARE ENGINE)
 # ---------------------------------------------------------
 with tab_briefing:
     st.header("Daily Operational Scent Briefing")
     st.caption(f"Atmospheric thermodynamics locked to {active_location_label} ({temp:.1f}°F).")
     
-    # Filter based on rotation mode selection
+    # SCENARIO SELECTOR
+    SCENARIO_OPTIONS = {
+        "💼 Work & Professional (Office Desk, Meetings, Leadership)": {
+            "badge": "WP",
+            "desc": "Enforces a controlled 3–4 ft sillage cap; polished woods, clean aromatics, tailored blues.",
+            "sprays": "3–4 sprays total (1 behind each ear, 1 center chest over cream/canvas, 1 across shirt collar/lapel).",
+            "cap": "Controlled Moderate (3–4 ft cap)"
+        },
+        "🌊 Leisure & Outdoor (Waterfront, Patios, Festivals, Stadium Games)": {
+            "badge": "LO",
+            "desc": "Built to cut through open air, river breezes, sunshine, and humidity without fading.",
+            "sprays": "4–5 sprays total (1 behind each ear, 1 center chest over cream/canvas, 2 misted across jacket, hoodie, or overshirt).",
+            "cap": "Assertive Open-Air (4–6 ft reach)"
+        },
+        "🍸 Date Night & Evening (Dinner, Intimate Speakeasy, Lounge)": {
+            "badge": "DN",
+            "desc": "Intimate 2–3 ft scent bubble; warm ambers, soft spices, cardamom, leather, and dark vanilla.",
+            "sprays": "3–4 sprays total (1 to each side of collarbones/neck, 1 center chest over canvas, 1 back of neck).",
+            "cap": "Intimate / Close Quarters (2–3 ft bubble)"
+        },
+        "🪩 Nightlife & Lounges (High Impact, Clubs, Social Lounges)": {
+            "badge": "NL",
+            "desc": "Maximum presence and heavy sillage; bold peppers, boozy resins, and powerful ouds.",
+            "sprays": "5–6 sprays total (2 neck pulse points, 2 chest over cream, 2 external clothing/lapel).",
+            "cap": "Bold Statement / Beast Mode (6–8+ ft)"
+        },
+        "☕ Everyday & Casual (Errands, WFH, Relaxed Daytime)": {
+            "badge": "EC",
+            "desc": "Clean, uplifting, and approachable; fresh musks, sparkling teas, and refreshing citrus/aquatics.",
+            "sprays": "3 sprays total (1 behind each ear, 1 center chest over canvas).",
+            "cap": "Approachable Moderate (2–3 ft)"
+        }
+    }
+    
+    today_w = datetime.date.today().weekday()
+    if today_w in [0, 1, 2, 3]:
+        default_idx = 0
+    elif today_w == 4:
+        default_idx = 0
+    elif today_w == 5:
+        default_idx = 1
+    else:
+        default_idx = 4
+        
+    selected_scenario_label = st.selectbox(
+        "🎯 Select Operational Scenario Context",
+        list(SCENARIO_OPTIONS.keys()),
+        index=default_idx
+    )
+    
+    scen_meta = SCENARIO_OPTIONS[selected_scenario_label]
+    target_badge = scen_meta["badge"]
+    
+    st.caption(f"*{scen_meta['desc']}*")
+    
     candidate_df = matrix_df.copy()
     if rotation_mode == "🎯 Standalone Solo Only":
         candidate_df = candidate_df[candidate_df["Pairing Type"] == "Standalone Solo Wear"]
     elif rotation_mode == "🧪 Layering & Mixology Only":
         candidate_df = candidate_df[candidate_df["Pairing Type"] != "Standalone Solo Wear"]
     
-    # Filter matrix for office safe combinations (WP or EC)
     scen_col = candidate_df.get("Eligible Scenarios", pd.Series([], dtype=str))
-    office_df = candidate_df[
-        scen_col.str.contains("WP", case=False, na=False) |
-        scen_col.str.contains("EC", case=False, na=False)
-    ]
+    scenario_filtered_df = candidate_df[scen_col.str.contains(target_badge, case=False, na=False)]
     
-    if office_df.empty:
-        office_df = candidate_df
+    if scenario_filtered_df.empty:
+        scenario_filtered_df = candidate_df
     
-    if not office_df.empty:
+    if not scenario_filtered_df.empty:
         today_num = datetime.date.today().toordinal()
-        random.seed(today_num + int(temp))
-        daily_idx = random.randint(0, len(office_df) - 1)
-        daily_choice = office_df.iloc[daily_idx]
+        badge_seed = sum(ord(c) for c in target_badge)
+        random.seed(today_num + int(temp) + badge_seed)
+        daily_idx = random.randint(0, len(scenario_filtered_df) - 1)
+        daily_choice = scenario_filtered_df.iloc[daily_idx]
         
         def safe_val(val, fallback="N/A"):
             s = str(val).strip()
@@ -386,8 +505,8 @@ with tab_briefing:
         base_layer = safe_val(daily_choice.get("Base Layer"), "None (Unscented Canvas)")
         top_layer = safe_val(daily_choice.get("Top Layer"), "Givenchy Gentleman Society")
         primer_compat = safe_val(daily_choice.get("Particle Primer Compatible"), "Yes")
-        projection = safe_val(daily_choice.get("Projection Strength"), "Moderate (3–4 ft)")
-        scent_notes = safe_val(daily_choice.get("Scent Profile & Notes Breakdown"), "Single-bottle natural progression worn over an unscented moisturizing canvas.")
+        projection = safe_val(daily_choice.get("Projection Strength"), scen_meta["cap"])
+        scent_notes = safe_val(daily_choice.get("Scent Profile & Notes Breakdown"), "Harmonious scent progression tailored to the operational scenario.")
         
         # Determine Canvas
         is_solo = (pairing_type == "Standalone Solo Wear" or "none" in base_layer.lower())
@@ -395,11 +514,21 @@ with tab_briefing:
         
         if is_solo:
             canvas_recommendation = f"{canvas_base} (Clean Canvas Prep)"
-            canvas_reason = "Crucial blank canvas: Locks in baseline moisture and binds the single fragrance's volatile top notes without altering its authentic note pyramid."
+            canvas_reason = f"Locks in baseline hydration and anchors the single fragrance's volatile notes under {temp:.1f}°F atmospheric conditions without masking its note progression."
         else:
             canvas_recommendation = f"{canvas_base} Base + {base_layer}"
-            canvas_reason = "Binds volatile base timbers and leatherwood against crisp damp air." if temp < 65 else "Lightweight hydration preventing heavy oils from suffocating under warmer ambient heat."
+            if target_badge in ["LO", "NL"]:
+                canvas_reason = "Deepens lipid binding so that base timbers and resins project with stability across outdoor breezes and active venues."
+            elif temp < 65:
+                canvas_reason = "Crucial lipid barrier to bind volatile base timbers and leatherwood against crisp damp air."
+            else:
+                canvas_reason = "Lightweight hydration preventing heavy oils from suffocating under warmer ambient heat."
         
+        if not is_solo and base_layer and "none" not in base_layer.lower():
+            wash_recommendation = f"{base_layer} Body Wash (1:1 Matching Shower Protocol)"
+        else:
+            wash_recommendation = "Freshwater Body Wash (Clean Slate Universal Canvas)"
+            
         sartorial = SARTORIAL_MAP.get(profile_name, DEFAULT_PALETTE)
         badge_style = "badge-solo" if is_solo else "badge-tag"
         
@@ -408,6 +537,7 @@ with tab_briefing:
         with col1:
             st.markdown(f"""
             <div class="metric-card">
+                <span class="badge-scenario">🎯 {target_badge} PROTOCOL</span>
                 <span class="{badge_style}">{"🎯 SOLO WEAR" if is_solo else "🧪 LAYERING PICK"}</span>
                 <span class="badge-tag">{pairing_type}</span>
                 <span class="badge-tag">Primer: {primer_compat}</span>
@@ -421,11 +551,9 @@ with tab_briefing:
             """, unsafe_allow_html=True)
             
             st.subheader("🎯 Application Strategy")
-            st.write(f"- **Projection Cap:** {projection}")
-            if is_solo:
-                st.write("- **Spray Distribution:** 3–4 sprays total (1 behind each ear, 1 center collarbone over unscented canvas, 1 back of neck).")
-            else:
-                st.write("- **Spray Distribution:** 4 sprays total (1 behind each ear, 1 center chest directly over cream canvas, 1 across collar/lapel).")
+            st.write(f"- **Target Sillage Cap:** {scen_meta['cap']} *(Evaluated for {target_badge})*")
+            st.write(f"- **Spray Distribution:** {scen_meta['sprays']}")
+            st.write(f"- **Shower Prep:** **{wash_recommendation}**")
             st.write(f"- **Grooming Canvas:** **{canvas_recommendation}**")
             st.caption(f"*{canvas_reason}*")
 
@@ -442,10 +570,10 @@ with tab_briefing:
             
             st.markdown("<br>", unsafe_allow_html=True)
             st.subheader("🔄 Alternate Roll")
-            if st.button("Generate Alternative Recipe"):
+            if st.button("Generate Alternative Option for this Scenario"):
                 st.rerun()
     else:
-        st.warning("No pairing recipes found in the active matrix sheets. Please verify your Google Sheet tabs.")
+        st.warning("No pairing recipes found in the active matrix sheets for this scenario. Please verify your Google Sheet tabs.")
 
 # ---------------------------------------------------------
 # TAB 2: MATRIX EXPLORER & GENERATOR
@@ -468,7 +596,14 @@ with tab_explorer:
         chosen_mode = st.selectbox("Pairing Mode", modes)
         
     with col_f3:
-        scenarios = ["All Scenarios", "WP (Work & Professional)", "EC (Everyday & Casual)", "DN (Date Night & Evening)", "NL (Nightlife & Lounges)", "LO (Leisure & Outdoors)"]
+        scenarios = [
+            "All Scenarios", 
+            "WP (Work & Professional)", 
+            "LO (Leisure & Outdoor)", 
+            "DN (Date Night & Evening)", 
+            "NL (Nightlife & Lounges)", 
+            "EC (Everyday & Casual)"
+        ]
         chosen_scen = st.selectbox("Target Scenario Badge", scenarios)
         
     with col_f4:
