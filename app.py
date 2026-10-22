@@ -31,27 +31,8 @@ except ImportError:
 # PAGE CONFIGURATION & MOBILE-FIRST STYLING
 # ---------------------------------------------------------
 
-st.markdown(
-    f"""
-<head>
-    <title>Fragrance Ops</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Fragrance Ops">
-    <meta name="application-name" content="Fragrance Ops">
-    <meta name="theme-color" content="#0E1117">
-    <link rel="apple-touch-icon" href="data:image/png;base64,{ICON_B64}">
-    <link rel="icon" type="image/png" href="data:image/png;base64,{ICON_B64}">
-</head>
-<script>
-    // Ensure document title and apple title stay pinned
-    document.title = "Fragrance Ops";
-</script>
-""",
-    unsafe_allow_html=True,
-)
-
 # Custom Mobile-Optimized Dark Mode CSS
+
 st.markdown("""
 <style>
     /* Responsive Global Container */
@@ -932,26 +913,25 @@ with tab_briefing:
         
         
        # Primary Recipe Card (Full Mobile Width)
-        # Primary Recipe Card (Full Mobile Width)
         st.markdown(
             f"""<div class="metric-card">
-    <div style="margin-bottom: 6px;">
-        <span class="badge-scenario">🎯 {target_badge} PROTOCOL</span>
-        <span class="{badge_style}">{"🎯 SOLO WEAR" if is_solo else "🧪 LAYERING PICK"}</span>
-        <span class="badge-tag">{pairing_type}</span>
-        <span class="badge-tag">Primer: {primer_compat}</span>
-        {' '.join([f'<span class="badge-weather">{tag}</span>' for tag in weather_tags])}
-    </div>
-    <h2 style="color: #58A6FF; margin-top: 6px; margin-bottom: 10px; font-weight: 700; font-size: 24px;">{profile_name}</h2>
-    <div style="background-color: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 12px; margin-bottom: 10px;">
-        <p style="font-size: 16px; margin: 0 0 6px 0;">
-            <strong>{'Selected Fragrance' if is_solo else 'Top Layer'}:</strong> <span style="color: #58A6FF; font-weight: 600;">{top_layer}</span>
-        </p>
-        <p style="font-size: 14.5px; margin: 0; color: #C9D1D9;">
-            <strong>Base Preparation:</strong> {base_layer}
-        </p>
-    </div>
-    <p style="font-style: italic; color: #8B949E; font-size: 13.5px; margin-bottom: 0;">"{scent_notes}"</p>
+<div style="margin-bottom: 6px;">
+<span class="badge-scenario">🎯 {target_badge} PROTOCOL</span>
+<span class="{badge_style}">{"🎯 SOLO WEAR" if is_solo else "🧪 LAYERING PICK"}</span>
+<span class="badge-tag">{pairing_type}</span>
+<span class="badge-tag">Primer: {primer_compat}</span>
+{' '.join([f'<span class="badge-weather">{tag}</span>' for tag in weather_tags])}
+</div>
+<h2 style="color: #58A6FF; margin-top: 6px; margin-bottom: 10px; font-weight: 700; font-size: 24px;">{profile_name}</h2>
+<div style="background-color: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+<p style="font-size: 16px; margin: 0 0 6px 0;">
+<strong>{'Selected Fragrance' if is_solo else 'Top Layer'}:</strong> <span style="color: #58A6FF; font-weight: 600;">{top_layer}</span>
+</p>
+<p style="font-size: 14.5px; margin: 0; color: #C9D1D9;">
+<strong>Base Preparation:</strong> {base_layer}
+</p>
+</div>
+<p style="font-style: italic; color: #8B949E; font-size: 13.5px; margin-bottom: 0;">"{scent_notes}"</p>
 </div>""",
             unsafe_allow_html=True,
         )
