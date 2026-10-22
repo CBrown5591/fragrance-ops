@@ -236,7 +236,7 @@ PRESET_CITIES = {
     "St. Thomas, USVI": {"lat": 18.3419, "lon": -64.9307},
     "New York, NY": {"lat": 40.7128, "lon": -74.0060},
     "Miami, FL": {"lat": 25.7617, "lon": -80.1918},
-    "Orlando, FL": {"lat": 28.5383, "lon": -81.3792}
+    "Orlando, FL": {"lat": 28.5383, "lon": -81.3792},
     "Atlanta, GA": {"lat": 33.7490, "lon": -84.3880},
     "Chicago, IL": {"lat": 41.8781, "lon": -87.6298},
     "Los Angeles, CA": {"lat": 34.0522, "lon": -118.2437}
