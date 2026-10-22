@@ -854,33 +854,6 @@ with tab_briefing:
             scenario_filtered_df = scenario_filtered_df[warm_mask]
 
     if not scenario_filtered_df.empty:
-      today_num = datetime.date.today().toordinal()
-      badge_seed = sum(ord(c) for c in target_badge)
-      wx_seed = int(
-          wx["temp"] * 3
-          + wx["humidity"]
-          + wx["rain_chance"]
-          + wx["wind_chill"]
-      )
-
-      # Factor in reroll counter so every button click changes the random seed
-      total_seed = (
-          today_num + wx_seed + badge_seed + st.session_state.reroll_counter
-      )
-      random.seed(total_seed)
-
-      # Ensure a new option is picked if more than one option exists
-      if len(scenario_filtered_df) > 1 and "last_idx" in st.session_state:
-        daily_idx = random.randint(0, len(scenario_filtered_df) - 1)
-        if daily_idx == st.session_state.last_idx:
-          daily_idx = (daily_idx + 1) % len(scenario_filtered_df)
-      else:
-        daily_idx = random.randint(0, len(scenario_filtered_df) - 1)
-
-      st.session_state.last_idx = daily_idx
-      daily_choice = scenario_filtered_df.iloc[daily_idx]
-        
-      if not scenario_filtered_df.empty:
         today_num = datetime.date.today().toordinal()
         badge_seed = sum(ord(c) for c in target_badge)
         wx_seed = int(wx["temp"] * 3 + wx["humidity"] + wx["rain_chance"] + wx["wind_chill"])
@@ -979,16 +952,12 @@ with tab_briefing:
         </div>
         """, unsafe_allow_html=True)
         
-        # Touch-Friendly Quick Reroll Button (resets palette index to 1 for the new scent)
-        # Touch-Friendly Quick Reroll Button
-        if st.button(
-            "🎲 Roll Alternative Option for this Scenario",
-            use_container_width=True,
-        ):
-          st.session_state.reroll_counter += 1
-          if "palette_idx" in st.session_state:
-            st.session_state.palette_idx = 0  # Resets colorway to Option 1 for the newly rolled scent
-          st.rerun()
+        # Touch-Friendly Quick Reroll Button (increments counter and resets colorway to Option 1)
+        if st.button("🎲 Roll Alternative Option for this Scenario", use_container_width=True):
+            st.session_state.reroll_counter += 1
+            if "palette_idx" in st.session_state:
+                st.session_state.palette_idx = 0
+            st.rerun()
 
         # Strategic Application & Sartorial Accord Cards
         st.markdown(f"""
@@ -1033,7 +1002,6 @@ with tab_briefing:
         if st.button("🎨 Shuffle Colorway (Option 1 / 2 / 3)", use_container_width=True):
             st.session_state.palette_idx += 1
             st.rerun()
-
     else:
         st.warning("No pairing recipes found in the active matrix sheets for this scenario. Please verify your Google Sheet tabs.")
 
