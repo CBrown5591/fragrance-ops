@@ -86,12 +86,33 @@ st.markdown("""
         margin-right: 6px;
         margin-bottom: 4px;
     }
+    .badge-weather {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 14px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        background-color: rgba(57, 211, 83, 0.15);
+        color: #39D353;
+        border: 1px solid rgba(57, 211, 83, 0.35);
+        margin-right: 6px;
+        margin-bottom: 4px;
+    }
     .sartorial-card {
         background: #161B22;
         border: 1px solid #30363D;
         border-radius: 10px;
         padding: 18px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+    .weather-grid {
+        background-color: #161B22;
+        border: 1px solid #30363D;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 10px;
+        margin-bottom: 14px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -206,7 +227,7 @@ def get_fallback_dataframe():
     return pd.DataFrame(data)
 
 # ---------------------------------------------------------
-# METEOROLOGICAL & GEOCODING SEARCH ENGINE
+# EXPANDED METEOROLOGICAL TELEMETRY ENGINE
 # ---------------------------------------------------------
 PRESET_CITIES = {
     "Washington, D.C.": {"lat": 38.9072, "lon": -77.0369},
@@ -221,20 +242,55 @@ PRESET_CITIES = {
 }
 
 @st.cache_data(ttl=900)
-def get_live_weather(lat, lon):
-    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true&temperature_unit=fahrenheit"
+def get_comprehensive_weather(lat, lon):
+    """
+    Pulls live weather and daily metrics from Open-Meteo:
+    - Current temp, wind speed, relative humidity, apparent temperature (feels like / wind chill)
+    - Daily max temp (High), min temp (Low), precipitation probability max (Rain chance)
+    """
+    url = (
+        f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+        "&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m"
+        "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+        "&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=1"
+    )
     try:
         r = requests.get(url, timeout=5).json()
-        curr = r.get("current_weather", {})
-        temp = float(curr.get("temperature", 65.0))
-        wind = float(curr.get("windspeed", 5.0))
-        return temp, wind
+        curr = r.get("current", {})
+        daily = r.get("daily", {})
+        
+        temp = float(curr.get("temperature_2m", 65.0))
+        humidity = int(curr.get("relative_humidity_2m", 50))
+        wind_chill = float(curr.get("apparent_temperature", temp))
+        wind = float(curr.get("wind_speed_10m", 5.0))
+        
+        high_temp = float(daily.get("temperature_2m_max", [temp])[0])
+        low_temp = float(daily.get("temperature_2m_min", [temp])[0])
+        rain_chance = int(daily.get("precipitation_probability_max", [0])[0])
+        
+        return {
+            "temp": temp,
+            "humidity": humidity,
+            "wind_chill": wind_chill,
+            "wind": wind,
+            "high": high_temp,
+            "low": low_temp,
+            "rain_chance": rain_chance
+        }
     except Exception:
-        return 65.0, 5.0
+        # Fallback to reasonable standard values
+        return {
+            "temp": 65.0,
+            "humidity": 55,
+            "wind_chill": 65.0,
+            "wind": 5.0,
+            "high": 68.0,
+            "low": 52.0,
+            "rain_chance": 10
+        }
 
 @st.cache_data(ttl=3600)
 def search_city_geocoding(query):
-    """Searches any city worldwide using Open-Meteo Geocoding API."""
     if not query or len(query.strip()) < 2:
         return []
     url = f"https://geocoding-api.open-meteo.com/v1/search?name={query.strip()}&count=6&language=en&format=json"
@@ -274,12 +330,17 @@ def reverse_geocode_coords(lat, lon):
     except Exception:
         return f"{lat:.2f}°, {lon:.2f}°"
 
-def determine_seasonal_band(temp):
-    if temp < 45:
+def evaluate_thermodynamic_band(temp, wind_chill):
+    """
+    Evaluates seasonal band based on effective perceived wind chill rather than raw temp alone.
+    If strong wind chill drags perceived temp down, shifts to colder bracket.
+    """
+    effective_temp = min(temp, wind_chill)
+    if effective_temp < 45:
         return "Deep Winter (< 45°F)"
-    elif 45 <= temp <= 58:
+    elif 45 <= effective_temp <= 58:
         return "Pre-Spring (Transitional 45°F – 58°F) / Crisp Fall"
-    elif 58 < temp <= 72:
+    elif 58 < effective_temp <= 72:
         return "Early Fall (Transitional 58°F – 72°F) / Spring Warming"
     else:
         return "High Summer (75°F – 95°F+)"
@@ -321,7 +382,7 @@ SARTORIAL_MAP = {
 DEFAULT_PALETTE = {"name": "Classic Executive Slate & White", "primary": "#2F3E46", "accent": "#F8F9FA", "styling": "Clean tailored neutral wardrobe with subtle brushed steel accent."}
 
 # ---------------------------------------------------------
-# SIDEBAR CONTROLS & LOCATION SEARCH ENGINE
+# SIDEBAR CONTROLS & EXPANDED WEATHER TELEMETRY
 # ---------------------------------------------------------
 with st.sidebar:
     st.image("https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=500&auto=format&fit=crop&q=60", use_container_width=True)
@@ -390,13 +451,28 @@ with st.sidebar:
         current_lon = PRESET_CITIES[selected_city]["lon"]
         active_location_label = f"🏙️ {selected_city}"
 
-    # Fetch live weather
-    temp, wind = get_live_weather(current_lat, current_lon)
-    active_band = determine_seasonal_band(temp)
+    # Fetch Comprehensive Live Weather
+    wx = get_comprehensive_weather(current_lat, current_lon)
+    active_band = evaluate_thermodynamic_band(wx["temp"], wx["wind_chill"])
     
     st.markdown("---")
-    st.metric("Live Ambient Temp", f"{temp:.1f} °F", f"Wind: {wind} mph")
-    st.caption(f"Active: **{active_location_label}**")
+    st.subheader("🌤️ Meteorological Panel")
+    
+    # Primary temp metric with Feels Like / Wind Chill indicator
+    delta_chill = wx["wind_chill"] - wx["temp"]
+    delta_str = f"Feels like {wx['wind_chill']:.1f}°F" if abs(delta_chill) >= 1.0 else "Stable air"
+    st.metric("Live Ambient Temp", f"{wx['temp']:.1f} °F", delta_str)
+    
+    # 2x2 Weather Details Grid
+    w_col1, w_col2 = st.columns(2)
+    with w_col1:
+        st.write(f"📈 **High:** {wx['high']:.0f}°F")
+        st.write(f"📉 **Low:** {wx['low']:.0f}°F")
+    with w_col2:
+        st.write(f"💧 **Humidity:** {wx['humidity']}%")
+        st.write(f"🌧️ **Rain:** {wx['rain_chance']}%")
+        
+    st.caption(f"🌬️ **Wind Speed:** {wx['wind']:.1f} mph | **Active:** {active_location_label}")
     st.info(f"**Target Seasonal Band:** {active_band}")
     
     if st.button("🔄 Sync with Google Drive Now"):
@@ -416,11 +492,11 @@ tab_briefing, tab_explorer, tab_directory = st.tabs([
 ])
 
 # ---------------------------------------------------------
-# TAB 1: DAILY BRIEFING & OPS (SCENARIO-AWARE ENGINE)
+# TAB 1: DAILY BRIEFING & OPS (ATMOSPHERICALLY WEIGHTED)
 # ---------------------------------------------------------
 with tab_briefing:
     st.header("Daily Operational Scent Briefing")
-    st.caption(f"Atmospheric thermodynamics locked to {active_location_label} ({temp:.1f}°F).")
+    st.caption(f"Atmospheric thermodynamics locked to {active_location_label} ({wx['temp']:.1f}°F, High {wx['high']:.0f}°F / Low {wx['low']:.0f}°F, {wx['humidity']}% Humidity).")
     
     # SCENARIO SELECTOR
     SCENARIO_OPTIONS = {
@@ -477,6 +553,9 @@ with tab_briefing:
     
     st.caption(f"*{scen_meta['desc']}*")
     
+    # ---------------------------------------------------------
+    # WEATHER FACTORING & SCENT FILTERING ENGINE
+    # ---------------------------------------------------------
     candidate_df = matrix_df.copy()
     if rotation_mode == "🎯 Standalone Solo Only":
         candidate_df = candidate_df[candidate_df["Pairing Type"] == "Standalone Solo Wear"]
@@ -488,11 +567,50 @@ with tab_briefing:
     
     if scenario_filtered_df.empty:
         scenario_filtered_df = candidate_df
+        
+    # ATMOSPHERIC HEURISTICS FACTORED INTO SELECTION:
+    weather_tags = []
     
+    # 1. Rain / High Humidity (> 70% Humidity or > 35% Rain Chance):
+    # Air has heavy moisture; weak aquatics or delicate light citruses thin out.
+    # Prioritize blends with fixative anchors: sage, vetiver, ambroxan, dark oak, leatherwood, or ginger.
+    is_damp = (wx["humidity"] >= 70 or wx["rain_chance"] >= 35)
+    if is_damp:
+        weather_tags.append("🌧️ Rain / High Humidity Anchor Active")
+        damp_mask = scenario_filtered_df["Scent Profile & Notes Breakdown"].str.contains(
+            "sage|vetiver|leatherwood|ambroxan|oak|birch|ginger|cedar|pepper", case=False, na=False
+        )
+        if damp_mask.any():
+            scenario_filtered_df = scenario_filtered_df[damp_mask]
+            
+    # 2. Wind Chill Factor (< 50°F Wind Chill):
+    # If biting wind or sharp chill is detected, bench thin summer freshies in favor of insulating timber/resins.
+    is_chilly = (wx["wind_chill"] < 50.0)
+    if is_chilly:
+        weather_tags.append("❄️ Wind Chill Suppression Active")
+        chill_mask = ~scenario_filtered_df["Scent Profile & Notes Breakdown"].str.contains(
+            "eau fraiche|frozen grapefruit|lime zest|coconut water", case=False, na=False
+        )
+        if chill_mask.any():
+            scenario_filtered_df = scenario_filtered_df[chill_mask]
+
+    # 3. High Heat Spike (> 78°F High):
+    # If daytime high pushes above 78°F, bench heavy ouds, thick vanillas, and heavy gourmands.
+    is_warm_spike = (wx["high"] >= 78.0)
+    if is_warm_spike:
+        weather_tags.append("☀️ Warm Afternoon Spike Guard")
+        warm_mask = ~scenario_filtered_df["Scent Profile & Notes Breakdown"].str.contains(
+            "tonka bean|roasted vanilla|smoked agarwood|sweet almond|incense tears", case=False, na=False
+        )
+        if warm_mask.any():
+            scenario_filtered_df = scenario_filtered_df[warm_mask]
+
     if not scenario_filtered_df.empty:
         today_num = datetime.date.today().toordinal()
         badge_seed = sum(ord(c) for c in target_badge)
-        random.seed(today_num + int(temp) + badge_seed)
+        # Factor humidity, rain chance, and wind chill into selection seed
+        wx_seed = int(wx["temp"] * 3 + wx["humidity"] + wx["rain_chance"] + wx["wind_chill"])
+        random.seed(today_num + wx_seed + badge_seed)
         daily_idx = random.randint(0, len(scenario_filtered_df) - 1)
         daily_choice = scenario_filtered_df.iloc[daily_idx]
         
@@ -508,22 +626,34 @@ with tab_briefing:
         projection = safe_val(daily_choice.get("Projection Strength"), scen_meta["cap"])
         scent_notes = safe_val(daily_choice.get("Scent Profile & Notes Breakdown"), "Harmonious scent progression tailored to the operational scenario.")
         
-        # Determine Canvas
+        # Determine Canvas using Wind Chill and High Temp
         is_solo = (pairing_type == "Standalone Solo Wear" or "none" in base_layer.lower())
-        canvas_base = "Unscented Body Butter" if temp < 65 else "Unscented Body Lotion"
+        
+        # If Wind Chill is brisk (< 65°F), prescribe Body Butter for maximum lipid sealing; otherwise lotion
+        use_butter = (wx["wind_chill"] < 65.0)
+        canvas_base = "Unscented Body Butter" if use_butter else "Unscented Body Lotion"
         
         if is_solo:
             canvas_recommendation = f"{canvas_base} (Clean Canvas Prep)"
-            canvas_reason = f"Locks in baseline hydration and anchors the single fragrance's volatile notes under {temp:.1f}°F atmospheric conditions without masking its note progression."
+            canvas_reason = (
+                f"Calibrated for {wx['temp']:.1f}°F air (Wind Chill: {wx['wind_chill']:.1f}°F, {wx['humidity']}% humidity). "
+                f"{'Locks deep moisture against drying chill/damp air' if use_butter else 'Maintains weightless hydration under warmer highs'} "
+                "without muting the single bottle's natural note pyramid."
+            )
         else:
             canvas_recommendation = f"{canvas_base} Base + {base_layer}"
-            if target_badge in ["LO", "NL"]:
-                canvas_reason = "Deepens lipid binding so that base timbers and resins project with stability across outdoor breezes and active venues."
-            elif temp < 65:
-                canvas_reason = "Crucial lipid barrier to bind volatile base timbers and leatherwood against crisp damp air."
+            if is_damp:
+                canvas_reason = f"Damp Weather Defense ({wx['humidity']}% humidity, {wx['rain_chance']}% rain): Provides a resilient lipid barrier so heavy moisture vapors cannot wash out base timbers."
+            elif use_butter:
+                canvas_reason = f"Thermal Protection (Wind Chill {wx['wind_chill']:.1f}°F): Deep lipid bonding locks volatile aromatic notes onto skin against brisk drafts."
             else:
-                canvas_reason = "Lightweight hydration preventing heavy oils from suffocating under warmer ambient heat."
+                canvas_reason = f"Warm Dynamic ({wx['high']:.0f}°F daytime peak): Prevents heavy oil suffocation while maintaining clean sillage."
         
+        # Spray Strategy Adjustment for High Wind (> 10 mph) or Open Air
+        spray_strategy = scen_meta["sprays"]
+        if wx["wind"] >= 10.0 or target_badge == "LO":
+            spray_strategy += f" *[Wind Defense Active: 1 extra mist across jacket collar/lapel to counter {wx['wind']:.1f} mph outdoor wind shear].*"
+            
         if not is_solo and base_layer and "none" not in base_layer.lower():
             wash_recommendation = f"{base_layer} Body Wash (1:1 Matching Shower Protocol)"
         else:
@@ -541,6 +671,7 @@ with tab_briefing:
                 <span class="{badge_style}">{"🎯 SOLO WEAR" if is_solo else "🧪 LAYERING PICK"}</span>
                 <span class="badge-tag">{pairing_type}</span>
                 <span class="badge-tag">Primer: {primer_compat}</span>
+                {' '.join([f'<span class="badge-weather">{tag}</span>' for tag in weather_tags])}
                 <h2 style="color: #58A6FF; margin-top: 8px; font-weight: 700;">{profile_name}</h2>
                 <p style="font-size: 15.5px; margin-bottom: 6px;">
                     <strong>{'Selected Fragrance' if is_solo else 'Top Layer'}:</strong> <span style="color: #58A6FF; font-weight: 600;">{top_layer}</span><br>
@@ -552,10 +683,20 @@ with tab_briefing:
             
             st.subheader("🎯 Application Strategy")
             st.write(f"- **Target Sillage Cap:** {scen_meta['cap']} *(Evaluated for {target_badge})*")
-            st.write(f"- **Spray Distribution:** {scen_meta['sprays']}")
+            st.write(f"- **Spray Distribution:** {spray_strategy}")
             st.write(f"- **Shower Prep:** **{wash_recommendation}**")
             st.write(f"- **Grooming Canvas:** **{canvas_recommendation}**")
             st.caption(f"*{canvas_reason}*")
+            
+            # Secondary Pivot Context if Day has high temperature delta (e.g. Low 50°F, High 78°F)
+            temp_range = wx["high"] - wx["low"]
+            if temp_range >= 18.0:
+                st.markdown(f"""
+                <div style="background-color: rgba(235, 142, 60, 0.1); border-left: 4px solid #F0883E; padding: 10px 14px; border-radius: 6px; margin-top: 10px; font-size: 13px;">
+                    <strong>Transitional Swing Notice:</strong> {temp_range:.0f}°F delta between Low ({wx['low']:.0f}°F) and High ({wx['high']:.0f}°F). 
+                    The chosen formula opens with sufficient crispness for early chill while resting on an anchor that will not turn cloying once afternoon peak temperatures are reached.
+                </div>
+                """, unsafe_allow_html=True)
 
         with col2:
             st.subheader("🎨 Sartorial Color Harmony")
