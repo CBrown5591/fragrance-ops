@@ -194,9 +194,7 @@ with st.sidebar:
     active_band = determine_seasonal_band(temp)
     
     st.metric("Live Ambient Temp", f"{temp:.1f} °F", f"Wind: {wind} mph")
-    st.info(f"**Target Seasonal Band:**
-
-{active_band}")
+    st.info(f"**Target Seasonal Band:** {active_band}")
     
     if st.button("🔄 Sync with Google Drive Now"):
         st.cache_data.clear()
