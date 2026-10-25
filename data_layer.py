@@ -467,3 +467,59 @@ def fetch_matrix_from_drive():
             o_name = str(r.get(f"Option {opt_idx}: Palette Name") or "").strip()
             o_prim = str(
                 r.
+# ---------------------------------------------------------
+# PERSISTENCE FOR DAILY WEAR TRACKER & REPETITION FILTER
+# ---------------------------------------------------------
+WEAR_HISTORY_FILE = "wear_history.json"
+
+
+def load_wear_history():
+  if os.path.exists(WEAR_HISTORY_FILE):
+    try:
+      with open(WEAR_HISTORY_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+    except Exception:
+      return []
+  return []
+
+
+def log_wear(wear_entry):
+  history = load_wear_history()
+  history = [
+      h
+      for h in history
+      if not (
+          h.get("date") == wear_entry.get("date")
+          and h.get("scenario") == wear_entry.get("scenario")
+      )
+  ]
+  history.append(wear_entry)
+  if len(history) > 60:
+    history = history[-60:]
+  try:
+    with open(WEAR_HISTORY_FILE, "w", encoding="utf-8") as f:
+      json.dump(history, f, indent=2)
+    return True
+  except Exception as e:
+    st.sidebar.warning(f"Could not write wear history: {e}")
+    return False
+
+
+def get_recent_wears(days=3):
+  import datetime
+
+  history = load_wear_history()
+  today = datetime.date.today()
+  recent = []
+  for h in reversed(history):
+    d_str = h.get("date", "")
+    try:
+      h_date = datetime.date.fromisoformat(d_str)
+      delta = (today - h_date).days
+      if 0 <= delta <= days:
+        top = h.get("top_layer", "")
+        if top and top not in recent:
+          recent.append(top)
+    except Exception:
+      continue
+  return recent
