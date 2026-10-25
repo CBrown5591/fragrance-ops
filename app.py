@@ -1,3 +1,402 @@
+import streamlit as st
+import datetime
+import random
+import pandas as pd
+from PIL import Image
+import base64
+import io
+
+# Import modular components
+from config import (
+    ICON_B64, CUSTOM_CSS, PRESET_CITIES, SCENARIO_OPTIONS,
+    DEFAULT_PALETTE
+)
+from weather_engine import (
+    get_comprehensive_weather, search_city_geocoding,
+    reverse_geocode_coords, evaluate_thermodynamic_band
+)
+from data_layer import (
+    fetch_matrix_from_drive, load_locked_fits,
+    save_locked_fit, delete_locked_fit,
+    load_wear_history, log_wear, get_recent_wears
+)
+from trip_engine import (
+    get_capsule_recommendations, generate_all_playbook_combinations,
+    load_saved_trips, save_trip, delete_saved_trip
+)
+from transition_engine import evaluate_evening_transition
+
+# Optional GPS Geolocation
+try:
+    from streamlit_js_eval import get_geolocation
+    HAS_GEOLOCATION = True
+except ImportError:
+    HAS_GEOLOCATION = False
+
+# ---------------------------------------------------------
+# PAGE SETUP & CSS INJECTION
+# ---------------------------------------------------------
+app_icon_img = Image.open(io.BytesIO(base64.b64decode(ICON_B64)))
+
+st.set_page_config(
+    page_title="Fragrance Ops",
+    page_icon=app_icon_img,
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# SIDEBAR CONTROLS & LIVE WEATHER
+# ---------------------------------------------------------
+with st.sidebar:
+    st.image("https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=500&auto=format&fit=crop&q=60", use_container_width=True)
+    st.title("Fragrance Ops")
+    st.caption("Modular Climate Engine • Live Matrix Sync")
+    st.markdown("---")
+    
+    st.subheader("⚙️ Deployment Mode")
+    rotation_mode = st.radio(
+        "Wardrobe Deployment",
+        ["🔄 Full Wardrobe (Mixology + Solo)", "🎯 Standalone Solo Only", "🧪 Layering & Mixology Only"],
+        index=0
+    )
+    
+    st.markdown("---")
+    st.subheader("📍 Location Mode")
+    loc_mode = st.radio(
+        "Select Mode",
+        ["📱 Phone GPS (Live)", "🔍 Search Any City", "🏙️ Quick Presets"],
+        index=0 if HAS_GEOLOCATION else 2
+    )
+    
+    active_location_label = "Washington, D.C."
+    current_lat = PRESET_CITIES["Washington, D.C."]["lat"]
+    current_lon = PRESET_CITIES["Washington, D.C."]["lon"]
+    
+    if loc_mode == "📱 Phone GPS (Live)":
+        if HAS_GEOLOCATION:
+            device_loc = get_geolocation()
+            if device_loc and "coords" in device_loc:
+                current_lat = device_loc["coords"]["latitude"]
+                current_lon = device_loc["coords"]["longitude"]
+                resolved_name = reverse_geocode_coords(current_lat, current_lon)
+                active_location_label = f"📱 {resolved_name}"
+                st.success(f"Locked to device GPS: **{resolved_name}**")
+            else:
+                st.info("Tap **Allow** on your phone to lock GPS. Baseline: D.C.")
+                active_location_label = "Washington, D.C. (Default)"
+        else:
+            st.warning("Install `streamlit-js-eval` for phone GPS.")
+            active_location_label = "Washington, D.C. (Default)"
+            
+    elif loc_mode == "🔍 Search Any City":
+        search_input = st.text_input("Enter City, State or Country", placeholder="e.g. Philadelphia, St. Thomas, Paris...")
+        if search_input:
+            search_matches = search_city_geocoding(search_input)
+            if search_matches:
+                choice = st.selectbox("Matching Locations Found", search_matches, format_func=lambda x: x["label"])
+                current_lat = choice["lat"]
+                current_lon = choice["lon"]
+                active_location_label = f"🔍 {choice['label']}"
+            else:
+                st.warning(f"No coordinates found for '{search_input}'.")
+                active_location_label = "Washington, D.C. (Default)"
+        else:
+            st.caption("Type any destination above to query live global weather telemetry.")
+            active_location_label = "Washington, D.C. (Default)"
+            
+    else:  # Quick Presets
+        selected_city = st.selectbox("Select Metro Preset", list(PRESET_CITIES.keys()), index=0)
+        current_lat = PRESET_CITIES[selected_city]["lat"]
+        current_lon = PRESET_CITIES[selected_city]["lon"]
+        active_location_label = f"🏙️ {selected_city}"
+
+    wx = get_comprehensive_weather(current_lat, current_lon)
+    active_band = evaluate_thermodynamic_band(wx["temp"], wx["wind_chill"])
+    
+    st.markdown("---")
+    st.subheader("🌤️ Meteorological Panel")
+    delta_chill = wx["wind_chill"] - wx["temp"]
+    delta_str = f"Feels like {wx['wind_chill']:.1f}°F" if abs(delta_chill) >= 1.0 else "Stable air"
+    st.metric("Live Ambient Temp", f"{wx['temp']:.1f} °F", delta_str)
+    
+    w_col1, w_col2 = st.columns(2)
+    with w_col1:
+        st.write(f"📈 **High:** {wx['high']:.0f}°F")
+        st.write(f"📉 **Low:** {wx['low']:.0f}°F")
+    with w_col2:
+        st.write(f"💧 **Humidity:** {wx['humidity']}%")
+        st.write(f"🌧️ **Rain:** {wx['rain_chance']}%")
+        
+    st.caption(f"🌬️ **Wind Speed:** {wx['wind']:.1f} mph | **Active:** {active_location_label}")
+    st.info(f"**Target Seasonal Band:** {active_band}")
+    
+    if st.button("🔄 Sync with Google Drive Now"):
+        st.cache_data.clear()
+        st.success("Cache refreshed from Google Drive!")
+
+# Load Master Matrix
+matrix_df, sartorial_registry = fetch_matrix_from_drive()
+
+# ---------------------------------------------------------
+# MAIN APP TABS
+# ---------------------------------------------------------
+tab_briefing, tab_explorer, tab_directory, tab_planner = st.tabs([
+    "👔 Daily Brief",
+    "🔍 Explorer",
+    "📖 Directory",
+    "🧳 Trip Planner"
+])
+
+# ---------------------------------------------------------
+# TAB 1: DAILY BRIEFING & OPS (WITH LOCK, WEAR LOG, & TRANSITION)
+# ---------------------------------------------------------
+with tab_briefing:
+    if "reroll_counter" not in st.session_state:
+        st.session_state.reroll_counter = 0
+    if "locked_fits" not in st.session_state:
+        st.session_state.locked_fits = load_locked_fits()
+    if "wear_history" not in st.session_state:
+        st.session_state.wear_history = load_wear_history()
+        
+    st.markdown(f"""<div class="mobile-weather-bar">
+<div>📍 <strong>{active_location_label}</strong></div>
+<div>🌡️ <strong>{wx['temp']:.1f}°F</strong> (H: {wx['high']:.0f}° | L: {wx['low']:.0f}°) • 💧 {wx['humidity']}%</div>
+</div>""", unsafe_allow_html=True)
+    
+    today_w = datetime.date.today().weekday()
+    default_idx = 0 if today_w in [0, 1, 2, 3, 4] else (1 if today_w == 5 else 4)
+        
+    selected_scenario_label = st.selectbox(
+        "🎯 Operational Scenario Context",
+        list(SCENARIO_OPTIONS.keys()),
+        index=default_idx
+    )
+    
+    scen_meta = SCENARIO_OPTIONS[selected_scenario_label]
+    target_badge = scen_meta["badge"]
+    today_str = str(datetime.date.today())
+    
+    active_lock = st.session_state.locked_fits.get(target_badge)
+    is_locked_today = active_lock is not None and active_lock.get("date") == today_str
+    
+    candidate_df = matrix_df.copy()
+    if rotation_mode == "🎯 Standalone Solo Only":
+        candidate_df = candidate_df[candidate_df["Pairing Type"] == "Standalone Solo Wear"]
+    elif rotation_mode == "🧪 Layering & Mixology Only":
+        candidate_df = candidate_df[candidate_df["Pairing Type"] != "Standalone Solo Wear"]
+    
+    scen_col = candidate_df.get("Eligible Scenarios", pd.Series([], dtype=str))
+    scenario_filtered_df = candidate_df[scen_col.str.contains(target_badge, case=False, na=False)]
+    if scenario_filtered_df.empty:
+        scenario_filtered_df = candidate_df
+        
+    # Weather dynamic filtering
+    weather_tags = []
+    if (wx["humidity"] >= 70 or wx["rain_chance"] >= 35):
+        weather_tags.append("🌧️ Rain/Humidity Anchor")
+        damp_mask = scenario_filtered_df["Scent Profile & Notes Breakdown"].str.contains(
+            "sage|vetiver|leatherwood|ambroxan|oak|birch|ginger|cedar|pepper", case=False, na=False
+        )
+        if damp_mask.any():
+            scenario_filtered_df = scenario_filtered_df[damp_mask]
+            
+    if wx["wind_chill"] < 50.0:
+        weather_tags.append("❄️ Wind Chill Shield")
+        chill_mask = ~scenario_filtered_df["Scent Profile & Notes Breakdown"].str.contains(
+            "eau fraiche|frozen grapefruit|lime zest|coconut water", case=False, na=False
+        )
+        if chill_mask.any():
+            scenario_filtered_df = scenario_filtered_df[chill_mask]
+
+    if wx["high"] >= 78.0:
+        weather_tags.append("☀️ Warm Peak Guard")
+        warm_mask = ~scenario_filtered_df["Scent Profile & Notes Breakdown"].str.contains(
+            "tonka bean|roasted vanilla|smoked agarwood|sweet almond|incense tears", case=False, na=False
+        )
+        if warm_mask.any():
+            scenario_filtered_df = scenario_filtered_df[warm_mask]
+
+    # Anti-repetition filter: Deprioritize fragrances worn in the last 3 days
+    recent_wears_list = get_recent_wears(days=3)
+    if not is_locked_today and len(scenario_filtered_df) > 1 and recent_wears_list:
+        fresh_candidates = scenario_filtered_df[~scenario_filtered_df["Top Layer"].isin(recent_wears_list)]
+        if not fresh_candidates.empty:
+            scenario_filtered_df = fresh_candidates
+
+    def safe_val(val, fallback="N/A"):
+        s = str(val).strip()
+        return fallback if not s or s.lower() == "nan" else s
+
+    if is_locked_today:
+        profile_name = active_lock["profile_name"]
+        top_layer = active_lock["top_layer"]
+        base_layer = active_lock["base_layer"]
+        pairing_type = active_lock["pairing_type"]
+        primer_compat = active_lock["primer_compat"]
+        scent_notes = active_lock["scent_notes"]
+        projection = active_lock.get("projection", scen_meta["cap"])
+        current_opt_idx = active_lock.get("palette_idx", 0)
+    elif not scenario_filtered_df.empty:
+        today_num = datetime.date.today().toordinal()
+        badge_seed = sum(ord(c) for c in target_badge)
+        wx_seed = int(wx["temp"] * 3 + wx["humidity"] + wx["rain_chance"] + wx["wind_chill"])
+        total_seed = today_num + wx_seed + badge_seed + st.session_state.reroll_counter
+        random.seed(total_seed)
+        
+        if len(scenario_filtered_df) > 1 and "last_idx" in st.session_state:
+            daily_idx = random.randint(0, len(scenario_filtered_df) - 1)
+            if daily_idx == st.session_state.last_idx:
+                daily_idx = (daily_idx + 1) % len(scenario_filtered_df)
+        else:
+            daily_idx = random.randint(0, len(scenario_filtered_df) - 1)
+            
+        st.session_state.last_idx = daily_idx
+        daily_choice = scenario_filtered_df.iloc[daily_idx]
+        
+        profile_name = safe_val(daily_choice.get("Custom Profile Name"), "Custom Executive Profile")
+        pairing_type = safe_val(daily_choice.get("Pairing Type"), "Standalone Solo Wear")
+        base_layer = safe_val(daily_choice.get("Base Layer"), "None (Unscented Canvas)")
+        top_layer = safe_val(daily_choice.get("Top Layer"), "Givenchy Gentleman Society")
+        primer_compat = safe_val(daily_choice.get("Particle Primer Compatible"), "Yes")
+        projection = safe_val(daily_choice.get("Projection Strength"), scen_meta["cap"])
+        scent_notes = safe_val(daily_choice.get("Scent Profile & Notes Breakdown"), "Harmonious scent progression tailored to the operational scenario.")
+        
+        if "palette_idx" not in st.session_state:
+            st.session_state.palette_idx = 0
+        current_opt_idx = st.session_state.palette_idx
+    else:
+        profile_name = None
+
+    if profile_name:
+        is_solo = (pairing_type == "Standalone Solo Wear" or "none" in base_layer.lower())
+        use_butter = (wx["wind_chill"] < 65.0)
+        canvas_base = "Unscented Body Butter" if use_butter else "Unscented Body Lotion"
+        
+        if is_solo:
+            canvas_recommendation = f"{canvas_base} (Clean Canvas Prep)"
+            canvas_reason = (
+                f"Calibrated for {wx['temp']:.1f}°F air ({wx['humidity']}% humidity). "
+                f"{'Locks moisture against chill' if use_butter else 'Weightless hydration'} without muting solo notes."
+            )
+        else:
+            canvas_recommendation = f"{canvas_base} Base + {base_layer}"
+            canvas_reason = "Thermal lipid bonding locks volatile aromatic notes onto skin against ambient breezes."
+        
+        spray_strategy = scen_meta["sprays"]
+        if wx["wind"] >= 10.0 or target_badge == "LO":
+            spray_strategy += f" *[Wind Defense: 1 extra mist across collar to counter {wx['wind']:.1f} mph shear].*"
+            
+        wash_rec = f"{base_layer} Body Wash" if (not is_solo and "none" not in base_layer.lower()) else "Freshwater Body Wash (Clean Canvas)"
+            
+        palettes = sartorial_registry.get(profile_name) or sartorial_registry.get(f"{base_layer} + {top_layer}")
+        if not palettes:
+            palettes = [DEFAULT_PALETTE]
+        elif isinstance(palettes, dict):
+            palettes = [palettes]
+            
+        active_opt_idx = current_opt_idx % len(palettes)
+        sartorial = palettes[active_opt_idx]
+        opt_num_display = sartorial.get("opt_num", active_opt_idx + 1)
+        total_opts = len(palettes)
+        badge_style = "badge-solo" if is_solo else "badge-tag"
+        
+        # Check Day-to-Evening Transition Bridge
+        # If active scenario is Evening (DN, NL), and user wore/locked a daytime scent earlier today
+        daytime_fit = st.session_state.locked_fits.get("WP") or st.session_state.locked_fits.get("EC")
+        if not daytime_fit:
+            # check wear history for today's daytime wears
+            today_daytime = [h for h in st.session_state.wear_history if h.get("date") == today_str and h.get("scenario") in ["WP", "EC"]]
+            if today_daytime:
+                daytime_fit = today_daytime[-1]
+
+        if target_badge in ["DN", "NL"] and daytime_fit and daytime_fit.get("top_layer") != top_layer:
+            trans_eval = evaluate_evening_transition(daytime_fit.get("top_layer", ""), top_layer)
+            if trans_eval:
+                st.markdown(f"""<div style="background-color: #161B22; border-left: 5px solid {trans_eval['badge_color']}; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+<strong style="color: {trans_eval['badge_color']}; font-size: 13px;">🌇 DAY-TO-EVENING TRANSITION BRIDGE</strong>
+<span style="font-size: 11px; font-weight: 600; color: #8B949E;">MORNING: {daytime_fit.get('top_layer', '')}</span>
+</div>
+<div style="font-weight: 700; font-size: 14.5px; color: #E6EDF3; margin-bottom: 4px;">{trans_eval['status']} • {trans_eval['headline']}</div>
+<div style="font-size: 13px; color: #C9D1D9; margin-bottom: 6px;">{trans_eval['guidance']}</div>
+<div style="font-size: 12.5px; color: #58A6FF; font-style: italic;">🎯 Protocol: {trans_eval['protocol']}</div>
+</div>""", unsafe_allow_html=True)
+
+        lock_status_html = f'<span class="locked-badge">🔒 LOCKED FOR TODAY ({target_badge}) • {active_lock.get("locked_time", "")}</span>' if is_locked_today else ''
+        
+        # Primary Recipe Card (0-indent margin flush)
+        st.markdown(
+            f"""<div class="metric-card">
+<div style="margin-bottom: 6px;">
+{lock_status_html}
+<span class="badge-scenario">🎯 {target_badge} PROTOCOL</span>
+<span class="{badge_style}">{"🎯 SOLO WEAR" if is_solo else "🧪 LAYERING PICK"}</span>
+<span class="badge-tag">{pairing_type}</span>
+<span class="badge-tag">Primer: {primer_compat}</span>
+{' '.join([f'<span class="badge-weather">{tag}</span>' for tag in weather_tags])}
+</div>
+<h2 style="color: #58A6FF; margin-top: 6px; margin-bottom: 10px; font-weight: 700; font-size: 24px;">{profile_name}</h2>
+<div style="background-color: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+<p style="font-size: 16px; margin: 0 0 6px 0;">
+<strong>{'Selected Fragrance' if is_solo else 'Top Layer'}:</strong> <span style="color: #58A6FF; font-weight: 600;">{top_layer}</span>
+</p>
+<p style="font-size: 14.5px; margin: 0; color: #C9D1D9;">
+<strong>Base Preparation:</strong> {base_layer}
+</p>
+</div>
+<p style="font-style: italic; color: #8B949E; font-size: 13.5px; margin-bottom: 0;">"{scent_notes}"</p>
+</div>""",
+            unsafe_allow_html=True,
+        )
+        
+                # Action Row: Lock & Log Wear, and Roll Alternative
+        act_col1, act_col2 = st.columns([1, 1])
+        with act_col1:
+            if is_locked_today:
+                if st.button(f"🔓 Unlock / Reshuffle ({target_badge})", use_container_width=True):
+                    delete_locked_fit(target_badge)
+                    del st.session_state.locked_fits[target_badge]
+                    st.rerun()
+            else:
+                if st.button(f"🔒 Lock & Log Today's Wear ({target_badge})", use_container_width=True):
+                    fit_info = {
+                        "date": today_str,
+                        "badge": target_badge,
+                        "profile_name": profile_name,
+                        "top_layer": top_layer,
+                        "base_layer": base_layer,
+                        "pairing_type": pairing_type,
+                        "primer_compat": primer_compat,
+                        "scent_notes": scent_notes,
+                        "projection": projection,
+                        "palette_idx": active_opt_idx,
+                        "locked_time": datetime.datetime.now().strftime("%I:%M %p")
+                    }
+                    st.session_state.locked_fits[target_badge] = fit_info
+                    save_locked_fit(target_badge, fit_info)
+
+                    # Automatically trigger wear logging
+                    wear_payload = {
+                        "date": today_str,
+                        "scenario": target_badge,
+                        "profile_name": profile_name,
+                        "top_layer": top_layer,
+                        "base_layer": base_layer,
+                        "temp": wx["temp"],
+                        "palette": sartorial["name"],
+                        "logged_at": datetime.datetime.now().strftime("%I:%M %p")
+                    }
+                    log_wear(wear_payload)
+                    st.session_state.wear_history = load_wear_history()
+                    st.toast(f"Locked & Logged {top_layer} for {target_badge}!", icon="🎯")
+                    st.rerun()
+
+        with act_col2:
+            if not is_locked_today:
+                if st.button("🎲 Roll Alternative Option", use_container_width=True):
                     st.session_state.reroll_counter += 1
                     if "palette_idx" in st.session_state:
                         st.session_state.palette_idx = 0
