@@ -18,7 +18,8 @@ from weather_engine import (
 from data_layer import (
     fetch_matrix_from_drive, load_locked_fits,
     save_locked_fit, delete_locked_fit,
-    load_wear_history, log_wear, get_recent_wears
+    load_wear_history, log_wear, get_recent_wears,
+    load_favorites, toggle_favorite, is_favorite
 )
 from trip_engine import (
     get_capsule_recommendations, generate_all_playbook_combinations,
@@ -26,12 +27,53 @@ from trip_engine import (
 )
 from transition_engine import evaluate_evening_transition
 
-# Optional GPS Geolocation
+from zoneinfo import ZoneInfo
+
+# Optional GPS Geolocation & Client Timezone Detection
 try:
-    from streamlit_js_eval import get_geolocation
+    from streamlit_js_eval import get_geolocation, streamlit_js_eval
     HAS_GEOLOCATION = True
 except ImportError:
     HAS_GEOLOCATION = False
+
+def resolve_client_timezone():
+    """
+    Detects user device/phone IANA timezone via browser JavaScript.
+    Defaults to America/New_York (US Eastern) if headless or uninitialized.
+    """
+    fallback_tz = "America/New_York"
+    if not HAS_GEOLOCATION:
+        return ZoneInfo(fallback_tz)
+    try:
+        device_tz_str = streamlit_js_eval(
+            js_expressions="Intl.DateTimeFormat().resolvedOptions().timeZone",
+            key="device_tz_eval"
+        )
+        if device_tz_str and isinstance(device_tz_str, str):
+            return ZoneInfo(device_tz_str.strip())
+    except Exception:
+        pass
+    return ZoneInfo(fallback_tz)
+
+def get_local_now(tz=None):
+    if tz is None:
+        tz = resolve_client_timezone()
+    return datetime.datetime.now(tz)
+
+def deduplicate_catalog(df):
+    """
+    Deduplicates recipes in-memory by (Custom Profile Name, Base Layer, Top Layer).
+    Keeps Google Sheets untouched while preventing duplicate rows in Explorer and Directory.
+    """
+    if df.empty:
+        return df
+    subset = [c for c in ['Custom Profile Name', 'Base Layer', 'Top Layer'] if c in df.columns]
+    if not subset:
+        return df.drop_duplicates()
+    df_clean = df.copy()
+    for c in subset:
+        df_clean[c] = df_clean[c].astype(str).str.strip()
+    return df_clean.drop_duplicates(subset=subset, keep='first')
 
 # ---------------------------------------------------------
 # PAGE SETUP & CSS INJECTION
@@ -154,19 +196,24 @@ tab_briefing, tab_explorer, tab_directory, tab_planner = st.tabs([
 # TAB 1: DAILY BRIEFING & OPS (WITH LOCK, WEAR LOG, & TRANSITION)
 # ---------------------------------------------------------
 with tab_briefing:
+    client_tz = resolve_client_timezone()
+    local_now = get_local_now(client_tz)
+    
     if "reroll_counter" not in st.session_state:
         st.session_state.reroll_counter = 0
     if "locked_fits" not in st.session_state:
         st.session_state.locked_fits = load_locked_fits()
     if "wear_history" not in st.session_state:
         st.session_state.wear_history = load_wear_history()
+    if "favorites" not in st.session_state:
+        st.session_state.favorites = load_favorites()
         
     st.markdown(f"""<div class="mobile-weather-bar">
 <div>📍 <strong>{active_location_label}</strong></div>
 <div>🌡️ <strong>{wx['temp']:.1f}°F</strong> (H: {wx['high']:.0f}° | L: {wx['low']:.0f}°) • 💧 {wx['humidity']}%</div>
 </div>""", unsafe_allow_html=True)
     
-    today_w = datetime.date.today().weekday()
+    today_w = local_now.weekday()
     default_idx = 0 if today_w in [0, 1, 2, 3, 4] else (1 if today_w == 5 else 4)
         
     selected_scenario_label = st.selectbox(
@@ -177,7 +224,7 @@ with tab_briefing:
     
     scen_meta = SCENARIO_OPTIONS[selected_scenario_label]
     target_badge = scen_meta["badge"]
-    today_str = str(datetime.date.today())
+    today_str = str(local_now.date())
     
     active_lock = st.session_state.locked_fits.get(target_badge)
     is_locked_today = active_lock is not None and active_lock.get("date") == today_str
@@ -240,7 +287,7 @@ with tab_briefing:
         projection = active_lock.get("projection", scen_meta["cap"])
         current_opt_idx = active_lock.get("palette_idx", 0)
     elif not scenario_filtered_df.empty:
-        today_num = datetime.date.today().toordinal()
+        today_num = local_now.date().toordinal()
         badge_seed = sum(ord(c) for c in target_badge)
         wx_seed = int(wx["temp"] * 3 + wx["humidity"] + wx["rain_chance"] + wx["wind_chill"])
         total_seed = today_num + wx_seed + badge_seed + st.session_state.reroll_counter
@@ -272,6 +319,7 @@ with tab_briefing:
 
     if profile_name:
         is_solo = (pairing_type == "Standalone Solo Wear" or "none" in base_layer.lower())
+        is_mixology = (pairing_type == "Cologne Mixology")
         use_butter = (wx["wind_chill"] < 65.0)
         canvas_base = "Unscented Body Butter" if use_butter else "Unscented Body Lotion"
         
@@ -279,11 +327,17 @@ with tab_briefing:
             canvas_recommendation = f"{canvas_base} (Clean Canvas Prep)"
             canvas_reason = (
                 f"Calibrated for {wx['temp']:.1f}°F air ({wx['humidity']}% humidity). "
-                f"{'Locks moisture against chill' if use_butter else 'Weightless hydration'} without muting solo notes."
+                f"{'Locks moisture against chill' if use_butter else 'Weightless hydration'} without competing with solo notes."
+            )
+        elif is_mixology:
+            canvas_recommendation = f"{canvas_base} (Neutral Layering Canvas)"
+            canvas_reason = (
+                f"Calibrated for {wx['temp']:.1f}°F air ({wx['humidity']}% humidity). "
+                f"Provides a fragrance-free lipid anchor so both colognes bond to skin cleanly without olfactory clash."
             )
         else:
-            canvas_recommendation = f"{canvas_base} Base + {base_layer}"
-            canvas_reason = "Thermal lipid bonding locks volatile aromatic notes onto skin against ambient breezes."
+            canvas_recommendation = f"{base_layer} (Direct Skin Application)"
+            canvas_reason = "Scented cream lipids provide the foundational base notes and thermal bonding; no neutral lotion needed."
         
         spray_strategy = scen_meta["sprays"]
         if wx["wind"] >= 10.0 or target_badge == "LO":
@@ -302,6 +356,8 @@ with tab_briefing:
         opt_num_display = sartorial.get("opt_num", active_opt_idx + 1)
         total_opts = len(palettes)
         badge_style = "badge-solo" if is_solo else "badge-tag"
+        is_fav = profile_name in st.session_state.favorites
+        fav_badge_html = '<span class="badge-tag" style="background-color: rgba(241, 196, 15, 0.2); color: #F1C40F; border: 1px solid rgba(241, 196, 15, 0.5);">⭐ FAVORITE</span>' if is_fav else ""
         
         # Check Day-to-Evening Transition Bridge
         # If active scenario is Evening (DN, NL), and user wore/locked a daytime scent earlier today
@@ -332,6 +388,7 @@ with tab_briefing:
             f"""<div class="metric-card">
 <div style="margin-bottom: 6px;">
 {lock_status_html}
+{fav_badge_html}
 <span class="badge-scenario">🎯 {target_badge} PROTOCOL</span>
 <span class="{badge_style}">{"🎯 SOLO WEAR" if is_solo else "🧪 LAYERING PICK"}</span>
 <span class="badge-tag">{pairing_type}</span>
@@ -352,8 +409,8 @@ with tab_briefing:
             unsafe_allow_html=True,
         )
         
-                # Action Row: Lock & Log Wear, and Roll Alternative
-        act_col1, act_col2 = st.columns([1, 1])
+                # Action Row: Lock & Log Wear, Favorite, and Roll Alternative
+        act_col1, act_col2, act_col3 = st.columns([1.2, 1, 1.2])
         with act_col1:
             if is_locked_today:
                 if st.button(f"🔓 Unlock / Reshuffle ({target_badge})", use_container_width=True):
@@ -361,7 +418,7 @@ with tab_briefing:
                     del st.session_state.locked_fits[target_badge]
                     st.rerun()
             else:
-                if st.button(f"🔒 Lock & Log Today's Wear ({target_badge})", use_container_width=True):
+                if st.button(f"🔒 Lock & Log ({target_badge})", use_container_width=True):
                     fit_info = {
                         "date": today_str,
                         "badge": target_badge,
@@ -373,7 +430,7 @@ with tab_briefing:
                         "scent_notes": scent_notes,
                         "projection": projection,
                         "palette_idx": active_opt_idx,
-                        "locked_time": datetime.datetime.now().strftime("%I:%M %p")
+                        "locked_time": local_now.strftime("%I:%M %p")
                     }
                     st.session_state.locked_fits[target_badge] = fit_info
                     save_locked_fit(target_badge, fit_info)
@@ -387,7 +444,7 @@ with tab_briefing:
                         "base_layer": base_layer,
                         "temp": wx["temp"],
                         "palette": sartorial["name"],
-                        "logged_at": datetime.datetime.now().strftime("%I:%M %p")
+                        "logged_at": local_now.strftime("%I:%M %p")
                     }
                     log_wear(wear_payload)
                     st.session_state.wear_history = load_wear_history()
@@ -395,14 +452,31 @@ with tab_briefing:
                     st.rerun()
 
         with act_col2:
+            fav_btn_label = "★ Favorited" if is_fav else "☆ Favorite"
+            if st.button(fav_btn_label, use_container_width=True):
+                recipe_payload = {
+                    "profile_name": profile_name,
+                    "top_layer": top_layer,
+                    "base_layer": base_layer,
+                    "pairing_type": pairing_type,
+                    "scent_notes": scent_notes,
+                    "scenario": target_badge,
+                    "projection": projection
+                }
+                added = toggle_favorite(profile_name, recipe_payload)
+                st.session_state.favorites = load_favorites()
+                st.toast(f"{'Saved to' if added else 'Removed from'} Favorites!", icon="⭐" if added else "🗑️")
+                st.rerun()
+
+        with act_col3:
             if not is_locked_today:
-                if st.button("🎲 Roll Alternative Option", use_container_width=True):
+                if st.button("🎲 Roll Alternative", use_container_width=True):
                     st.session_state.reroll_counter += 1
                     if "palette_idx" in st.session_state:
                         st.session_state.palette_idx = 0
                     st.rerun()
             else:
-                st.caption(f"🔒 Locked & Logged at {active_lock.get('locked_time', 'Today')}")
+                st.caption(f"🔒 Locked at {active_lock.get('locked_time', 'Today')}")
 
         # Recent Wears Strip (Last 3 days)
         if st.session_state.wear_history:
@@ -456,20 +530,35 @@ with tab_briefing:
 # ---------------------------------------------------------
 with tab_explorer:
     st.header("Matrix Explorer")
-    st.caption("Filter recipes across seasonal brackets, scenario badges, and chemical primers.")
+    st.caption("Filter recipes across seasonal sheets, pairing modes, scenario badges, and favorites.")
     
+    if "favorites" not in st.session_state:
+        st.session_state.favorites = load_favorites()
+
+    only_favs = st.checkbox("⭐ Show Favorites Only", value=False)
+
     col_f1, col_f2 = st.columns(2)
     with col_f1:
-        seasons = ["All Sheets / Bands"] + sorted([s for s in matrix_df["Season_Sheet"].unique() if str(s).strip() != ""]) if "Season_Sheet" in matrix_df.columns else ["All Sheets / Bands"]
-        chosen_season = st.selectbox("Seasonal Sheet", seasons)
+        raw_seasons = sorted([s for s in matrix_df["Season_Sheet"].unique() if str(s).strip() != "" and str(s).lower() != "nan"]) if "Season_Sheet" in matrix_df.columns else []
+        chosen_seasons = st.multiselect("Seasonal Sheets (Multi-Select / Leave Blank for All)", raw_seasons, default=[])
         chosen_mode = st.selectbox("Pairing Mode", ["All Modes", "Standalone Solo Wear", "Body Cream Layer", "Cologne Mixology"])
     with col_f2:
         chosen_scen = st.selectbox("Scenario Badge", ["All Scenarios", "WP (Work & Professional)", "LO (Leisure & Outdoor)", "DN (Date Night & Evening)", "NL (Nightlife & Lounges)", "EC (Everyday & Casual)"])
         primer_opt = st.selectbox("Particle Primer Compatible", ["Any", "Yes", "No"])
         
     filtered_df = matrix_df.copy()
-    if chosen_season != "All Sheets / Bands" and "Season_Sheet" in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df["Season_Sheet"] == chosen_season]
+
+    # 1. Filter by Selected Seasonal Sheets (if any chosen)
+    if chosen_seasons and "Season_Sheet" in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df["Season_Sheet"].isin(chosen_seasons)]
+
+    # 2. Always Deduplicate in-memory across the active search slice
+    filtered_df = deduplicate_catalog(filtered_df)
+
+    # 3. Apply Favorites, Mode, Scenario, and Primer Filters
+    if only_favs:
+        fav_names = list(st.session_state.favorites.keys())
+        filtered_df = filtered_df[filtered_df["Custom Profile Name"].isin(fav_names)]
     if chosen_mode != "All Modes" and "Pairing Type" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["Pairing Type"] == chosen_mode]
     if chosen_scen != "All Scenarios" and "Eligible Scenarios" in filtered_df.columns:
@@ -477,7 +566,7 @@ with tab_explorer:
     if primer_opt != "Any" and "Particle Primer Compatible" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["Particle Primer Compatible"].astype(str).str.strip().str.lower() == primer_opt.lower()]
 
-    st.write(f"**Found {len(filtered_df)} Matching Recipes**")
+    st.write(f"**Found {len(filtered_df)} Matching Recipes** (Deduplicated)")
     if st.button("🎲 Surprise Me (Random Filter Match)", use_container_width=True):
         if not filtered_df.empty:
             pick = filtered_df.sample(1).iloc[0]
@@ -495,8 +584,8 @@ with tab_directory:
     search_q = st.text_input("🔍 Search notes, cologne names, or DNA", placeholder="e.g. Sage, Ambroxan, YSL Y, Aventus, Vetiver...")
     if search_q:
         mask = matrix_df.astype(str).apply(lambda row: row.str.contains(search_q, case=False).any(), axis=1)
-        res = matrix_df[mask]
-        st.write(f"Found **{len(res)}** references:")
+        res = deduplicate_catalog(matrix_df[mask])
+        st.write(f"Found **{len(res)}** unique references:")
         disp = [c for c in ['Custom Profile Name', 'Base Layer', 'Top Layer', 'Scent Profile & Notes Breakdown'] if c in res.columns]
         st.dataframe(res[disp], use_container_width=True, hide_index=True)
     else:
@@ -546,7 +635,7 @@ with tab_planner:
             target_lat, target_lon = 18.3419, -64.9307
             resolved_dest_title = "St. Thomas, USVI (Default)"
             
-    d_start = datetime.date.today() + datetime.timedelta(days=30)
+    d_start = local_now.date() + datetime.timedelta(days=30)
     d_end = d_start + datetime.timedelta(days=6)
     date_range = st.date_input("Travel Dates", value=(d_start, d_end))
     dates_str = f"{date_range[0]} to {date_range[1]}" if len(date_range) == 2 else str(date_range)
@@ -653,7 +742,7 @@ with tab_planner:
                 "bases": active_bases,
                 "colognes": colognes,
                 "scenarios": target_badges,
-                "saved_at": datetime.datetime.now().strftime("%Y-%m-%d %I:%M %p")
+                "saved_at": get_local_now().strftime("%Y-%m-%d %I:%M %p")
             }
             if save_trip(new_trip_name, trip_payload):
                 st.success(f"Trip '{new_trip_name}' saved to disk!")
