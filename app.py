@@ -537,20 +537,68 @@ with tab_explorer:
 
     only_favs = st.checkbox("⭐ Show Favorites Only", value=False)
 
+    # Exactly the 7 Canonical Seasonal Options
+    CANONICAL_SEASONS = [
+        "Deep Winter (< 45°F)",
+        "Pre-Spring (Transitional 45°F – 58°F)",
+        "Spring (Warming 55°F – 70°F)",
+        "High Summer (75°F – 95°F+)",
+        "Early Fall (Transitional 58°F – 72°F)",
+        "Crisp Fall (45°F – 60°F)",
+        "All-Season (6-Band Universal)"
+    ]
+
     col_f1, col_f2 = st.columns(2)
     with col_f1:
-        raw_seasons = sorted([s for s in matrix_df["Season_Sheet"].unique() if str(s).strip() != "" and str(s).lower() != "nan"]) if "Season_Sheet" in matrix_df.columns else []
-        chosen_seasons = st.multiselect("Seasonal Sheets (Multi-Select / Leave Blank for All)", raw_seasons, default=[])
-        chosen_mode = st.selectbox("Pairing Mode", ["All Modes", "Standalone Solo Wear", "Body Cream Layer", "Cologne Mixology"])
+        chosen_seasons = st.multiselect(
+            "Seasonal Sheets (Multi-Select / Leave Blank for All 7)",
+            CANONICAL_SEASONS,
+            default=[]
+        )
+        chosen_mode = st.selectbox(
+            "Pairing Mode",
+            ["All Modes", "Standalone Solo Wear", "Body Cream Layer", "Cologne Mixology"]
+        )
     with col_f2:
-        chosen_scen = st.selectbox("Scenario Badge", ["All Scenarios", "WP (Work & Professional)", "LO (Leisure & Outdoor)", "DN (Date Night & Evening)", "NL (Nightlife & Lounges)", "EC (Everyday & Casual)"])
+        chosen_scen = st.selectbox(
+            "Scenario Badge",
+            ["All Scenarios", "WP (Work & Professional)", "LO (Leisure & Outdoor)", "DN (Date Night & Evening)", "NL (Nightlife & Lounges)", "EC (Everyday & Casual)"]
+        )
         primer_opt = st.selectbox("Particle Primer Compatible", ["Any", "Yes", "No"])
         
     filtered_df = matrix_df.copy()
 
-    # 1. Filter by Selected Seasonal Sheets (if any chosen)
+    # 1. Filter by Canonical 7 Seasons (Smart Substring / Universal Matching)
     if chosen_seasons and "Season_Sheet" in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df["Season_Sheet"].isin(chosen_seasons)]
+        # Extract core keywords from selections to catch both sheet names and solo composite tags
+        kw_map = {
+            "Deep Winter": ["deep winter", "winter"],
+            "Pre-Spring": ["pre-spring"],
+            "Spring": ["spring"],
+            "High Summer": ["summer", "vacation"],
+            "Early Fall": ["early fall"],
+            "Crisp Fall": ["crisp fall", "late fall", "fall"],
+            "All-Season": ["all-season", "universal"]
+        }
+        
+        active_keywords = []
+        include_universal = False
+        for opt in chosen_seasons:
+            for cat, words in kw_map.items():
+                if cat in opt:
+                    active_keywords.extend(words)
+                    if cat == "All-Season":
+                        include_universal = True
+
+        # Build regex pattern
+        pat = "|".join(set(active_keywords))
+        mask = filtered_df["Season_Sheet"].str.contains(pat, case=False, na=False)
+        
+        # If any season is selected, always include All-Season unless filtering strictly
+        if not include_universal:
+            mask = mask | filtered_df["Season_Sheet"].str.contains("all-season|universal", case=False, na=False)
+            
+        filtered_df = filtered_df[mask]
 
     # 2. Always Deduplicate in-memory across the active search slice
     filtered_df = deduplicate_catalog(filtered_df)
@@ -575,7 +623,6 @@ with tab_explorer:
             
     disp_cols = [c for c in ['Custom Profile Name', 'Pairing Type', 'Base Layer', 'Top Layer', 'Eligible Scenarios', 'Projection Strength', 'Scent Profile & Notes Breakdown'] if c in filtered_df.columns]
     st.dataframe(filtered_df[disp_cols], use_container_width=True, hide_index=True)
-
 # ---------------------------------------------------------
 # TAB 3: STANDALONE DIRECTORY
 # ---------------------------------------------------------
