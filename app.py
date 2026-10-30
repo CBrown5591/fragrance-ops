@@ -659,4 +659,140 @@ with tab_planner:
             if trip_choice:
                 t_record = saved_trips_data[trip_choice]
                 st.write(f"**Trip:** {trip_choice} | **Destination:** {t_record.get('dest')} | **Dates:** {t_record.get('dates')}")
-                st.write(f"**Bases:** {
+                st.write(f"**Bases:** {', '.join([b['name'] for b in t_record.get('bases', [])])}")
+                st.write(f"**Colognes:** {', '.join([c['name'] for c in t_record.get('colognes', [])])}")
+                if st.button(f"🗑️ Delete Saved Itinerary '{trip_choice}'"):
+                    delete_saved_trip(trip_choice)
+                    st.rerun()
+                    
+    st.subheader("1. Trip Parameters")
+    dest_mode = st.radio("Destination Method", ["🏙️ Choose Preset", "🔍 Search Any City / Island"], index=0, horizontal=True)
+    if dest_mode == "🏙️ Choose Preset":
+        chosen_dest_label = st.selectbox("Destination Preset", list(PRESET_CITIES.keys()), index=2 if "St. Thomas" in str(list(PRESET_CITIES.keys())) else 0)
+        target_lat = PRESET_CITIES[chosen_dest_label]["lat"]
+        target_lon = PRESET_CITIES[chosen_dest_label]["lon"]
+        resolved_dest_title = chosen_dest_label
+    else:
+        dest_input = st.text_input("Destination City or Island", value="St. Thomas")
+        s_matches = search_city_geocoding(dest_input)
+        if s_matches:
+            d_choice = st.selectbox("Matching Destination", s_matches, format_func=lambda x: x["label"])
+            target_lat = d_choice["lat"]
+            target_lon = d_choice["lon"]
+            resolved_dest_title = d_choice["label"]
+        else:
+            target_lat, target_lon = 18.3419, -64.9307
+            resolved_dest_title = "St. Thomas, USVI (Default)"
+            
+    d_start = local_now.date() + datetime.timedelta(days=30)
+    d_end = d_start + datetime.timedelta(days=6)
+    date_range = st.date_input("Travel Dates", value=(d_start, d_end))
+    dates_str = f"{date_range[0]} to {date_range[1]}" if len(date_range) == 2 else str(date_range)
+    
+    st.write("**Scenarios to Cover:**")
+    sc1, sc2 = st.columns(2)
+    with sc1:
+        scen_lo = st.checkbox("🌊 Leisure / Beach", value=True)
+        scen_ec = st.checkbox("☕ Casual / Transit", value=True)
+        scen_dn = st.checkbox("🍸 Date Night / Dinner", value=True)
+    with sc2:
+        scen_nl = st.checkbox("🪩 Nightlife / Clubs", value=False)
+        scen_wp = st.checkbox("💼 Work / Meetings", value=False)
+        
+    cream_choice = st.radio("Base Cream Allowance", ["1 Universal Anchor Cream", "2 Dynamic Dual Creams"], index=0, horizontal=True)
+    
+    target_badges = []
+    if scen_lo: target_badges.append("LO")
+    if scen_ec: target_badges.append("EC")
+    if scen_dn: target_badges.append("DN")
+    if scen_nl: target_badges.append("NL")
+    if scen_wp: target_badges.append("WP")
+    if not target_badges:
+        target_badges = ["LO", "EC", "DN"]
+        
+    t_wx = get_comprehensive_weather(target_lat, target_lon)
+    t_band = evaluate_thermodynamic_band(t_wx["temp"], t_wx["wind_chill"])
+    
+    st.markdown("---")
+    st.subheader("2. Curated Travel Capsule (Slot-by-Slot Shuffling)")
+    
+    st.markdown(f"""<div style="background-color: #161B22; border-left: 4px solid #30363D; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13.5px;">
+📍 <strong>Location:</strong> <span style="color: #58A6FF; font-weight: 600;">{resolved_dest_title}</span><br>
+🌡️ <strong>Climate:</strong> ~<strong>{t_wx['temp']:.1f}°F</strong> (H: <strong>{t_wx['high']:.0f}°F</strong> / L: <strong>{t_wx['low']:.0f}°F</strong>) • {t_wx['humidity']}% Humid<br>
+🌴 <strong>Seasonal Bracket:</strong> <span style="color: #39D353; font-weight: 600;">{t_band}</span><br>
+🎯 <strong>Coverage Scenarios:</strong> {', '.join(target_badges)}
+</div>""", unsafe_allow_html=True)
+
+    capsule = get_capsule_recommendations(t_band, t_wx["temp"], cream_choice, st.session_state.trip_offsets)
+    base_1 = capsule["base_1"]
+    base_2 = capsule["base_2"]
+    active_bases = [base_1] + ([base_2] if base_2 else [])
+    
+    # Base Creams Presentation with Shuffle
+    st.markdown(f"""<div class="capsule-card">
+<span class="badge-tag">FOUNDATION ANCHOR #1</span>
+<h3 style="color: #58A6FF; margin: 4px 0; font-size: 18px;">{base_1['name']}</h3>
+<p style="margin: 0; font-size: 13px; color: #8B949E;">{base_1['desc']}</p>
+</div>""", unsafe_allow_html=True)
+    if st.button("🎲 Shuffle Anchor Cream #1", key="btn_shuf_b1"):
+        st.session_state.trip_offsets["base_1"] += 1
+        st.rerun()
+
+    if base_2:
+        st.markdown(f"""<div class="capsule-card">
+<span class="badge-tag">FOUNDATION ANCHOR #2</span>
+<h3 style="color: #BC8CFF; margin: 4px 0; font-size: 18px;">{base_2['name']}</h3>
+<p style="margin: 0; font-size: 13px; color: #8B949E;">{base_2['desc']}</p>
+</div>""", unsafe_allow_html=True)
+        if st.button("🎲 Shuffle Anchor Cream #2", key="btn_shuf_b2"):
+            st.session_state.trip_offsets["base_2"] += 1
+            st.rerun()
+
+    # Colognes Presentation with Individual Slot Shuffle
+    colognes = [capsule["col_1"], capsule["col_2"], capsule["col_3"], capsule["col_4"]]
+    st.write(f"**Curated {len(colognes)}-Bottle Roster:**")
+    
+    for i, col in enumerate(colognes, 1):
+        slot_key = f"col_{i}"
+        c_box1, c_box2 = st.columns([4, 1])
+        with c_box1:
+            st.markdown(f"""<div style="background-color: #161B22; border-left: 4px solid #58A6FF; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px;">
+<div style="font-size: 14.5px; font-weight: 600; color: #E6EDF3;">Bottle #{i}: <span style="color: #58A6FF;">{col['name']}</span></div>
+<div style="font-size: 12px; color: #BC8CFF; margin-top: 1px;">{col['role']}</div>
+<div style="font-size: 12.5px; color: #8B949E; margin-top: 3px;">{col['notes']}</div>
+</div>""", unsafe_allow_html=True)
+        with c_box2:
+            if st.button(f"🎲 Swap #{i}", key=f"btn_shuf_{slot_key}", use_container_width=True):
+                st.session_state.trip_offsets[slot_key] += 1
+                st.rerun()
+
+    st.markdown("---")
+    st.subheader("3. Exhaustive Trip Deployment Playbook (All Combinations)")
+    st.caption("Full tactical matrix displaying every combination achievable with your selected travel kit across your chosen scenarios:")
+    
+    playbook_df = generate_all_playbook_combinations(active_bases, colognes, target_badges, matrix_df)
+    st.dataframe(playbook_df, use_container_width=True, hide_index=True)
+    
+    # Sub-section: Save Trip Capsule
+    st.markdown("---")
+    st.subheader("4. 💾 Save This Capsule Itinerary")
+    save_col1, save_col2 = st.columns([3, 1])
+    with save_col1:
+        new_trip_name = st.text_input("Itinerary Name", value=f"{resolved_dest_title} Capsule")
+    with save_col2:
+        st.write("")
+        st.write("")
+        if st.button("💾 Save Trip Plan", use_container_width=True):
+            trip_payload = {
+                "dest": resolved_dest_title,
+                "dates": dates_str,
+                "temp": t_wx["temp"],
+                "band": t_band,
+                "bases": active_bases,
+                "colognes": colognes,
+                "scenarios": target_badges,
+                "saved_at": get_local_now().strftime("%Y-%m-%d %I:%M %p")
+            }
+            if save_trip(new_trip_name, trip_payload):
+                st.success(f"Trip '{new_trip_name}' saved to disk!")
+                st.rerun()
