@@ -1,79 +1,82 @@
-"""Day-to-Evening Transition Bridge Engine for Fragrance Ops.
-Analyzes daytime drydown residues and evaluates evening over-spray synergy, clashing notes, and spray caps.
+"""Universal Scenario Transition Bridge Engine for Fragrance Ops.
+Evaluates drydown residues and calculates over-spray synergy, note clashes, and application protocols across ANY scenario transition.
 """
 
-def evaluate_evening_transition(day_scent, evening_scent):
+def evaluate_scenario_transition(prev_scent, new_scent, prev_badge="DAY", new_badge="TARGET"):
     """
-    Evaluates olfactory compatibility when spraying an evening fragrance
-    directly over the fading drydown of a daytime fragrance.
+    Evaluates olfactory compatibility when spraying a new scenario fragrance
+    over the lingering drydown of a previously worn fragrance.
     """
-    if not day_scent or not evening_scent:
+    if not prev_scent or not new_scent:
         return None
         
-    d_low = day_scent.lower()
-    e_low = evening_scent.lower()
+    p_low = prev_scent.lower()
+    n_low = new_scent.lower()
     
-    # 1. Perfect Natural Synergies
-    if ("society" in d_low or "gentleman" in d_low) and ("the one" in e_low or "whiskey" in e_low or "pi" in e_low):
+    # 1. Perfect Natural Synergies & Harmonious Over-Sprays
+    if ("society" in p_low or "gentleman" in p_low) and ("the one" in n_low or "whiskey" in n_low or "pi" in n_low):
         return {
             "status": "🌟 Harmonious Over-Spray",
             "badge_color": "#39D353",
-            "headline": "Wood & Cardamom Bridge",
-            "guidance": "Givenchy Society's lingering Haitian vetiver and cedarwood drydown binds effortlessly with evening tobacco, bourbon amber, and warm vanilla.",
-            "protocol": "No shower needed. Apply 2 sprays to collarbones and 1 to back of neck to re-ignite sillage without overwhelming the baseline."
+            "headline": "Vetiver & Cardamom Synergy",
+            "guidance": "Givenchy Society's lingering Haitian vetiver and cedarwood drydown binds effortlessly with warm tobacco, boozy amber, and vanilla.",
+            "protocol": "Safe for direct over-spray. Apply 2 sprays to collarbones and 1 to back of neck to re-ignite sillage."
         }
         
-    if ("blue fate" in d_low or "myslf" in d_low or "identity" in d_low) and ("the one" in e_low or "society" in e_low or "dylan" in e_low or "nomade" in e_low):
+    if ("blue fate" in p_low or "myslf" in p_low or "identity" in p_low) and ("the one" in n_low or "society" in n_low or "dylan" in n_low or "nomade" in n_low):
         return {
             "status": "🌟 Harmonious Over-Spray",
             "badge_color": "#39D353",
-            "headline": "Modern Ambroxan & Floral Fusion",
-            "guidance": "The clean Ambrofix / Akigalawood morning skin trail acts as a transparent booster, allowing evening woods, spices, and amber to project with radiant lift.",
-            "protocol": "Safe for direct over-spray. Apply 2–3 sprays to chest and neck pulse points."
+            "headline": "Modern Ambrofix & Floral Boost",
+            "guidance": "The clean Ambrofix / Akigalawood skin residue acts as an organic booster, projecting incoming woods, spices, and amber with radiant lift.",
+            "protocol": "Apply 2–3 sprays directly to pulse points. No skin reset required."
         }
         
-    if ("pristine" in d_low or "aventus" in d_low or "br540" in d_low) and ("nomade" in e_low or "whiskey" in e_low or "the one" in e_low or "oud" in e_low):
+    if ("pristine" in p_low or "aventus" in p_low or "br540" in p_low) and ("nomade" in n_low or "whiskey" in n_low or "the one" in n_low or "oud" in n_low):
         return {
             "status": "🌟 Harmonious Over-Spray",
             "badge_color": "#39D353",
-            "headline": "Smoky Birch & Amber Saffron Layer",
-            "guidance": "Fading smoky birch and burnt sugar saffron creates an opulent base layer under evening agarwood, cured tobacco, or bourbon oak.",
-            "protocol": "Controlled re-application: 2 sprays maximum. The residual amber base will amplify evening sillage reach."
+            "headline": "Smoky Birch & Saffron Resonance",
+            "guidance": "Fading smoky birch and burnt-sugar saffron creates an opulent primer underneath incoming woods, tobacco, or dark resins.",
+            "protocol": "Controlled application: Cap at 2 sprays. The residual amber base will naturally amplify projection reach."
         }
         
-    if ("reality" in d_low or "imagination" in d_low) and ("blue fate" in e_low or "society" in e_low or "guilty" in e_low):
+    if ("reality" in p_low or "imagination" in p_low) and ("blue fate" in n_low or "society" in n_low or "guilty" in n_low):
         return {
             "status": "✨ Seamless Transition",
             "badge_color": "#58A6FF",
             "headline": "Black Tea & Citrus Awakening",
-            "guidance": "The sparkling black tea and ambroxan skin scent provides a crisp, elegant backdrop that lifts evening aromatics and soft woods.",
-            "protocol": "Apply 3 sprays to upper chest and neck. The afternoon tea notes will gently evaporate, leaving clean ambroxan resonance."
+            "guidance": "The sparkling black tea and ambroxan skin trail provides an elegant, transparent backdrop that brightens incoming aromatics.",
+            "protocol": "Apply normal spray cap. Residual afternoon tea notes will gently evaporate without muddling the new core."
         }
         
-    # 2. Boundary Clashes (Shower / Reset Required)
-    if ("profondo" in d_low or "ocean" in d_low or "acqua" in d_low) and ("nomade" in e_low or "oud noir" in e_low or "pi" in e_low):
+    # 2. Boundary Clashes (Shower / Canvas Reset Required)
+    if ("profondo" in p_low or "ocean" in p_low or "viw" in p_low or "virgin island" in p_low) and ("nomade" in n_low or "oud" in n_low or "pi" in n_low):
         return {
             "status": "⚠️ Boundary Clash Detected",
             "badge_color": "#F85149",
-            "headline": "Marine Salt vs. Dense Gourmand / Oud",
-            "guidance": "Marine salt and green cypress accords clash against heavy smoky resins, benzoin, and raw oud, creating a muddled, synthetic aura.",
-            "protocol": "Shower / Clean Slate Recommended: Cleanse chest and neck with warm water and unscented soap before applying evening gourmands or heavy ouds."
+            "headline": "Marine Ozone vs. Dense Resins / Oud",
+            "guidance": "Marine sea salt and cypress accords clash directly against heavy smoky resins, benzoin, and raw oud, risking a muddled chemical aura.",
+            "protocol": "Canvas Reset Recommended: Cleanse chest and neck with warm water and soap before applying heavy ouds or dense gourmands."
         }
         
-    if ("pi" in d_low or "vanilla" in d_low) and ("profondo" in e_low or "reality" in e_low or "splish" in e_low):
+    if ("pi" in p_low or "vanilla" in p_low or "tonka" in p_low) and ("profondo" in n_low or "reality" in n_low or "splish" in n_low or "light blue" in n_low):
         return {
             "status": "⚠️ Boundary Clash Detected",
             "badge_color": "#F85149",
             "headline": "Sweet Tonka Suffocation",
-            "guidance": "Residual almond and roasted tonka bean will suffocate delicate sparkling citrus, mountain tea, and aquatic ozone notes.",
-            "protocol": "Reset canvas before applying light citrus or aquatic evening scents."
+            "guidance": "Residual sweet almond and roasted tonka bean will suffocate delicate incoming sparkling citrus, mountain tea, or aquatic ozone notes.",
+            "protocol": "Reset canvas with a warm shower or alcohol wipe before applying light daytime citrus or fresh aquatics."
         }
 
-    # 3. Default Neutral / General Bridge
+    # 3. Universal / General Transition Protocol
     return {
         "status": "✨ Clean Neutral Bridge",
         "badge_color": "#58A6FF",
-        "headline": "Standard Over-Spray",
-        "guidance": f"Morning remnants of {day_scent.split('(')[0].strip()} provide a subtle underlying canvas for {evening_scent.split('(')[0].strip()}.",
-        "protocol": "Apply 2–3 sprays to pulse points. If morning projection is still assertive, cap evening sprays at 2."
+        "headline": f"{prev_badge} ➔ {new_badge} Shift",
+        "guidance": f"Residual drydown of {prev_scent.split('(')[0].strip()} provides a subtle background canvas for {new_scent.split('(')[0].strip()}.",
+        "protocol": "Apply 2–3 sprays to pulse points. If earlier projection is still assertive on clothes, target fresh skin only."
     }
+
+# Backwards compatibility alias
+evaluate_evening_transition = evaluate_scenario_transition
