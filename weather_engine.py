@@ -130,3 +130,127 @@ def evaluate_thermodynamic_band(temp, wind_chill):
         return "Early Fall (Transitional 58°F – 72°F) / Spring Warming"
     else:
         return "High Summer (75°F – 95°F+)"
+
+
+@st.cache_data(ttl=3600)
+def get_trip_weather(lat, lon, start_date=None, end_date=None):
+    """
+    Intelligent Trip Weather Engine:
+    - If travel dates are within 14 days, queries Open-Meteo's extended forecast model.
+    - If travel dates are > 14 days in the future, queries Open-Meteo's Historical Archive
+      for the exact calendar window (same month/day) to calculate a seasonal climatology baseline.
+    - Falls back gracefully to comprehensive current weather if network or archive fails.
+    """
+    import datetime
+    
+    current_fallback = get_comprehensive_weather(lat, lon)
+    if not start_date or not end_date:
+        current_fallback["source"] = "Live Ambient Telemetry"
+        return current_fallback
+        
+    try:
+        today = datetime.date.today()
+        # Handle tuple or single date
+        if isinstance(start_date, (list, tuple)):
+            if len(start_date) == 2:
+                s_d, e_d = start_date[0], start_date[1]
+            else:
+                s_d = e_d = start_date[0]
+        else:
+            s_d = start_date
+            e_d = end_date
+
+        delta_days = (s_d - today).days
+
+        # Case A: Travel is within the next 14 days -> Use live extended forecast
+        if 0 <= delta_days <= 14:
+            f_url = (
+                f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+                "&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,wind_speed_10m_max"
+                "&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=16"
+            )
+            resp = requests.get(f_url, timeout=5).json()
+            daily = resp.get("daily", {})
+            times = daily.get("time", [])
+            
+            s_str = s_d.isoformat()
+            e_str = e_d.isoformat()
+            
+            matching_indices = [i for i, t in enumerate(times) if s_str <= t <= e_str]
+            if not matching_indices:
+                matching_indices = [min(delta_days, len(times) - 1)]
+                
+            highs = [daily["temperature_2m_max"][i] for i in matching_indices if daily["temperature_2m_max"][i] is not None]
+            lows = [daily["temperature_2m_min"][i] for i in matching_indices if daily["temperature_2m_min"][i] is not None]
+            chills = [daily["apparent_temperature_max"][i] for i in matching_indices if daily["apparent_temperature_max"][i] is not None]
+            winds = [daily["wind_speed_10m_max"][i] for i in matching_indices if daily["wind_speed_10m_max"][i] is not None]
+            rains = [daily["precipitation_probability_max"][i] for i in matching_indices if daily["precipitation_probability_max"][i] is not None]
+            
+            avg_high = sum(highs) / len(highs) if highs else current_fallback["high"]
+            avg_low = sum(lows) / len(lows) if lows else current_fallback["low"]
+            avg_temp = (avg_high + avg_low) / 2.0
+            avg_chill = sum(chills) / len(chills) if chills else avg_temp
+            avg_wind = sum(winds) / len(winds) if winds else 6.0
+            max_rain = max(rains) if rains else 15
+            
+            return {
+                "temp": avg_temp,
+                "humidity": current_fallback["humidity"],
+                "wind_chill": avg_chill,
+                "wind": avg_wind,
+                "high": avg_high,
+                "low": avg_low,
+                "rain_chance": max_rain,
+                "source": "14-Day Extended Forecast Model"
+            }
+
+        # Case B: Travel is > 14 days out -> Query Historical Archive for seasonal baseline
+        prev_year = today.year - 1
+        try:
+            hist_s = s_d.replace(year=prev_year)
+            hist_e = e_d.replace(year=prev_year)
+        except ValueError:
+            # Leap day Feb 29 adjustment
+            hist_s = s_d.replace(year=prev_year, day=28)
+            hist_e = e_d.replace(year=prev_year, day=28)
+            
+        a_url = (
+            f"https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lon}"
+            f"&start_date={hist_s.isoformat()}&end_date={hist_e.isoformat()}"
+            "&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,wind_speed_10m_max"
+            "&temperature_unit=fahrenheit&wind_speed_unit=mph"
+        )
+        a_resp = requests.get(a_url, timeout=5).json()
+        a_daily = a_resp.get("daily", {})
+        
+        a_highs = [v for v in a_daily.get("temperature_2m_max", []) if v is not None]
+        a_lows = [v for v in a_daily.get("temperature_2m_min", []) if v is not None]
+        a_chills = [v for v in a_daily.get("apparent_temperature_min", []) if v is not None]
+        a_precip = [v for v in a_daily.get("precipitation_sum", []) if v is not None]
+        a_winds = [v for v in a_daily.get("wind_speed_10m_max", []) if v is not None]
+        
+        if a_highs and a_lows:
+            mean_high = sum(a_highs) / len(a_highs)
+            mean_low = sum(a_lows) / len(a_lows)
+            mean_temp = (mean_high + mean_low) / 2.0
+            min_chill = sum(a_chills) / len(a_chills) if a_chills else mean_low
+            wind_speed = sum(a_winds) / len(a_winds) if a_winds else 6.5
+            total_rain = sum(a_precip) if a_precip else 0.0
+            rain_est = min(int(total_rain * 35), 85) if total_rain > 0 else 10
+            
+            return {
+                "temp": mean_temp,
+                "humidity": current_fallback["humidity"],
+                "wind_chill": min_chill,
+                "wind": wind_speed,
+                "high": mean_high,
+                "low": mean_low,
+                "rain_chance": rain_est,
+                "source": f"Historical Climatology Baseline ({hist_s.strftime('%b %d')}–{hist_e.strftime('%b %d')})"
+            }
+
+    except Exception:
+        pass
+        
+    current_fallback["source"] = "Current Telemetry Fallback"
+    return current_fallback
