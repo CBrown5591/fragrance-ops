@@ -335,7 +335,7 @@ with tab_briefing:
         s = str(val).strip()
         return fallback if not s or s.lower() == "nan" else s
 
-   if is_locked_today:
+    if is_locked_today:
         profile_name = active_lock["profile_name"]
         top_layer = active_lock["top_layer"]
         base_layer = active_lock["base_layer"]
