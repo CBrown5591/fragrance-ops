@@ -6,47 +6,63 @@ import streamlit as st
 from config import PRESET_CITIES
 
 @st.cache_data(ttl=900)
-def get_comprehensive_weather(lat, lon):
-    url = (
-        f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
-        "&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m"
-        "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max"
-        "&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=1"
-    )
-    try:
-        r = requests.get(url, timeout=5).json()
-        curr = r.get("current", {})
-        daily = r.get("daily", {})
-        
-        temp = float(curr.get("temperature_2m", 65.0))
-        humidity = int(curr.get("relative_humidity_2m", 50))
-        wind_chill = float(curr.get("apparent_temperature", temp))
-        wind = float(curr.get("wind_speed_10m", 5.0))
-        
-        high_temp = float(daily.get("temperature_2m_max", [temp])[0])
-        low_temp = float(daily.get("temperature_2m_min", [temp])[0])
-        rain_chance = int(daily.get("precipitation_probability_max", [0])[0])
-        
-        return {
-            "temp": temp,
-            "humidity": humidity,
-            "wind_chill": wind_chill,
-            "wind": wind,
-            "high": high_temp,
-            "low": low_temp,
-            "rain_chance": rain_chance
-        }
-    except Exception:
-        return {
-            "temp": 65.0,
-            "humidity": 55,
-            "wind_chill": 65.0,
-            "wind": 5.0,
-            "high": 68.0,
-            "low": 52.0,
-            "rain_chance": 10
-        }
+def get_comprehensive_weather(lat, lon, target_hour=None):
+  url = (
+      f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+      "&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m"
+      "&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,wind_speed_10m"
+      "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+      "&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=1"
+  )
+  try:
+    r = requests.get(url, timeout=5).json()
+    curr = r.get("current", {})
+    daily = r.get("daily", {})
+    hourly = r.get("hourly", {})
 
+    high_temp = float(daily.get("temperature_2m_max", [68.0])[0])
+    low_temp = float(daily.get("temperature_2m_min", [52.0])[0])
+    rain_chance = int(daily.get("precipitation_probability_max", [10])[0])
+
+    if (
+        target_hour is not None
+        and 0 <= target_hour <= 23
+        and "temperature_2m" in hourly
+    ):
+      temp = float(hourly["temperature_2m"][target_hour])
+      humidity = int(hourly["relative_humidity_2m"][target_hour])
+      wind_chill = float(hourly["apparent_temperature"][target_hour])
+      wind = float(hourly["wind_speed_10m"][target_hour])
+      rain_chance = int(hourly["precipitation_probability"][target_hour])
+      source_tag = f"Simulated for {target_hour % 12 or 12}:00 {'PM' if target_hour >= 12 else 'AM'}"
+    else:
+      temp = float(curr.get("temperature_2m", 65.0))
+      humidity = int(curr.get("relative_humidity_2m", 50))
+      wind_chill = float(curr.get("apparent_temperature", temp))
+      wind = float(curr.get("wind_speed_10m", 5.0))
+      source_tag = "Live Telemetry"
+
+    return {
+        "temp": temp,
+        "humidity": humidity,
+        "wind_chill": wind_chill,
+        "wind": wind,
+        "high": high_temp,
+        "low": low_temp,
+        "rain_chance": rain_chance,
+        "source": source_tag,
+    }
+  except Exception:
+    return {
+      "temp": 65.0,
+      "humidity": 55,
+      "wind_chill": 65.0,
+      "wind": 5.0,
+      "high": 68.0,
+      "low": 52.0,
+      "rain_chance": 10,
+      "source": "Fallback Defaults",
+    }
 @st.cache_data(ttl=3600)
 def search_city_geocoding(query):
     if not query or len(query.strip()) < 2:
