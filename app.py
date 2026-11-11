@@ -1,8 +1,3 @@
-
-
-
-PY icon
-app
 import streamlit as st
 import datetime
 import random
