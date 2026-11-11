@@ -335,7 +335,7 @@ with tab_briefing:
         s = str(val).strip()
         return fallback if not s or s.lower() == "nan" else s
 
-    if is_locked_today:
+   if is_locked_today:
         profile_name = active_lock["profile_name"]
         top_layer = active_lock["top_layer"]
         base_layer = active_lock["base_layer"]
@@ -343,7 +343,15 @@ with tab_briefing:
         primer_compat = active_lock["primer_compat"]
         scent_notes = active_lock["scent_notes"]
         projection = active_lock.get("projection", scen_meta["cap"])
-        current_opt_idx = active_lock.get("palette_idx", 0)
+        
+        # Check if palette was locked independently
+        is_palette_locked = active_lock.get("palette_locked", False)
+        if is_palette_locked:
+            current_opt_idx = active_lock.get("palette_idx", 0)
+        else:
+            if "palette_idx" not in st.session_state:
+                st.session_state.palette_idx = active_lock.get("palette_idx", 0)
+            current_opt_idx = st.session_state.palette_idx
     elif not scenario_filtered_df.empty:
         today_num = local_now.date().toordinal()
         badge_seed = sum(ord(c) for c in target_badge)
@@ -501,12 +509,13 @@ with tab_briefing:
                         "scent_notes": scent_notes,
                         "projection": projection,
                         "palette_idx": active_opt_idx,
+                        "palette_locked": False,  # <--- Palette remains open for independent selection
                         "locked_time": local_now.strftime("%I:%M %p")
                     }
                     st.session_state.locked_fits[target_badge] = fit_info
                     save_locked_fit(target_badge, fit_info)
 
-                    # Automatically trigger wear logging
+                    # Initial wear log
                     wear_payload = {
                         "date": today_str,
                         "scenario": target_badge,
@@ -519,7 +528,7 @@ with tab_briefing:
                     }
                     log_wear(wear_payload)
                     st.session_state.wear_history = load_wear_history()
-                    st.toast(f"Locked & Logged {top_layer} for {target_badge}!", icon="🎯")
+                    st.toast(f"Locked Fragrance: {top_layer}! Palette remains open.", icon="🎯")
                     st.rerun()
 
         with act_col2:
@@ -572,11 +581,23 @@ with tab_briefing:
             unsafe_allow_html=True,
         )
 
+        # Determine palette lock status
+        is_palette_locked = is_locked_today and active_lock.get("palette_locked", False)
+        palette_badge = (
+            f'<span class="locked-badge" style="background-color: rgba(57, 211, 83, 0.2); color: #39D353; border-color: rgba(57, 211, 83, 0.5);">'
+            f'🔒 PALETTE LOCKED</span>'
+            if is_palette_locked else
+            '<span class="badge-tag" style="background-color: rgba(255, 255, 255, 0.08); color: #8B949E;">⏳ PALETTE OPEN</span>'
+        )
+
         # Sartorial Harmony Card
         st.markdown(
             f"""<div class="sartorial-card">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+<div style="display: flex; align-items: center; gap: 8px;">
 <h4 style="color: #58A6FF; margin: 0; font-size: 16px;">🎨 Sartorial Color Harmony</h4>
+{palette_badge}
+</div>
 <span class="badge-tag">OPTION {opt_num_display} OF {total_opts}</span>
 </div>
 <div style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">{sartorial['name']}</div>
@@ -588,13 +609,47 @@ with tab_briefing:
 </div>""",
             unsafe_allow_html=True,
         )
-        
-        if not is_locked_today:
-            if st.button("🎨 Shuffle Colorway (Option 1 / 2 / 3)", use_container_width=True):
-                st.session_state.palette_idx += 1
+
+        # Independent Sartorial Palette Controls
+        if is_palette_locked:
+            if st.button("🔓 Unlock / Reshuffle Palette", use_container_width=True):
+                active_lock["palette_locked"] = False
+                save_locked_fit(target_badge, active_lock)
+                st.session_state.locked_fits[target_badge] = active_lock
                 st.rerun()
-    else:
-        st.warning("No pairing recipes found in the active matrix sheets for this scenario.")
+        else:
+            p_col1, p_col2 = st.columns([1.2, 1.2])
+            with p_col1:
+                if st.button("🎨 Next Colorway Option", use_container_width=True):
+                    st.session_state.palette_idx = (current_opt_idx + 1) % total_opts
+                    st.rerun()
+            with p_col2:
+                lock_pal_label = f"🔒 Lock Palette (Option {opt_num_display})"
+                if st.button(lock_pal_label, use_container_width=True):
+                    if is_locked_today:
+                        active_lock["palette_idx"] = active_opt_idx
+                        active_lock["palette_locked"] = True
+                        active_lock["palette_name"] = sartorial["name"]
+                        save_locked_fit(target_badge, active_lock)
+                        st.session_state.locked_fits[target_badge] = active_lock
+
+                        # Update wear history entry with final locked palette
+                        wear_payload = {
+                            "date": today_str,
+                            "scenario": target_badge,
+                            "profile_name": profile_name,
+                            "top_layer": top_layer,
+                            "base_layer": base_layer,
+                            "temp": wx["temp"],
+                            "palette": sartorial["name"],
+                            "logged_at": local_now.strftime("%I:%M %p")
+                        }
+                        log_wear(wear_payload)
+                        st.session_state.wear_history = load_wear_history()
+                    else:
+                        st.session_state.palette_idx = active_opt_idx
+                    st.toast(f"Locked Palette: {sartorial['name']}!", icon="🎨")
+                    st.rerun()
 
 # ---------------------------------------------------------
 # TAB 2: MATRIX EXPLORER
