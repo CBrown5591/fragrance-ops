@@ -864,4 +864,3 @@ with tab_planner:
             if save_trip(new_trip_name, trip_payload):
                 st.success(f"Trip '{new_trip_name}' saved to disk!")
                 st.rerun()
-Processed and analyzed in code
