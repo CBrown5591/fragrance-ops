@@ -240,12 +240,8 @@ with tab_briefing:
     today_w = local_now.weekday()
     default_idx = 0 if today_w in [0, 1, 2, 3, 4] else (1 if today_w == 5 else 4)
 
-    with tab_briefing:
-  client_tz = resolve_client_timezone()
-  local_now = get_local_now(client_tz)
-
   # Target Hour Simulation Controls
-  c_time1, c_time2 = st.columns([1.5, 2.5])
+    c_time1, c_time2 = st.columns([1.5, 2.5])
   with c_time1:
     time_mode = st.radio(
         "Deployment Time",
