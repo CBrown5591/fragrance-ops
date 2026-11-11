@@ -239,6 +239,56 @@ with tab_briefing:
     
     today_w = local_now.weekday()
     default_idx = 0 if today_w in [0, 1, 2, 3, 4] else (1 if today_w == 5 else 4)
+
+    with tab_briefing:
+  client_tz = resolve_client_timezone()
+  local_now = get_local_now(client_tz)
+
+  # Target Hour Simulation Controls
+  c_time1, c_time2 = st.columns([1.5, 2.5])
+  with c_time1:
+    time_mode = st.radio(
+        "Deployment Time",
+        ["Live Now", "Plan for Later"],
+        horizontal=True,
+        key="time_sim_mode",
+    )
+
+  target_h = None
+  if time_mode == "Plan for Later":
+    with c_time2:
+      # Generate hourly labels from current hour forward through midnight
+      curr_h = local_now.hour
+      remaining_hours = list(range(curr_h, 24))
+      if not remaining_hours:
+        remaining_hours = [curr_h]
+
+      def fmt_hour(h):
+        return f"{h % 12 or 12}:00 {'PM' if h >= 12 else 'AM'}"
+
+      selected_h_label = st.selectbox(
+          "Target Outing Time",
+          remaining_hours,
+          format_func=fmt_hour,
+          index=min(2, len(remaining_hours) - 1),
+      )
+      target_h = selected_h_label
+
+  # Re-query weather for that specific target hour
+  wx = get_comprehensive_weather(current_lat, current_lon, target_hour=target_h)
+  active_band = evaluate_thermodynamic_band(wx["temp"], wx["wind_chill"])
+
+  # Mobile Weather Bar updates dynamically
+  time_badge = (
+      f" • ⏱️ {wx['source']}" if target_h is not None else " • 🔴 Live Ambient"
+  )
+  st.markdown(
+      f"""<div class="mobile-weather-bar">
+    <div>📍 <strong>{active_location_label}</strong>{time_badge}</div>
+    <div>🌡️ <strong>{wx['temp']:.1f}°F</strong> (H: {wx['high']:.0f}° | L: {wx['low']:.0f}°) • 💧 {wx['humidity']}%</div>
+    </div>""",
+      unsafe_allow_html=True,
+  )
         
     selected_scenario_label = st.selectbox(
         "🎯 Operational Scenario Context",
