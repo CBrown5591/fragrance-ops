@@ -801,7 +801,7 @@ with tab_planner:
             target_lat, target_lon = 18.3419, -64.9307
             resolved_dest_title = "St. Thomas, USVI (Default)"
             
-    d_start = local_now.date() + datetime.timedelta(days=30)
+    d_start = local_now.date() + datetime.timedelta(days=4)
     d_end = d_start + datetime.timedelta(days=6)
     date_range = st.date_input("Travel Dates", value=(d_start, d_end))
     dates_str = f"{date_range[0]} to {date_range[1]}" if len(date_range) == 2 else str(date_range)
